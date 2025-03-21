@@ -1,0 +1,1 @@
+This folder is adapted from https://github.com/All-Hands-AI/OpenHands/tree/main/evaluation/benchmarks/swe_bench/scripts/docker
