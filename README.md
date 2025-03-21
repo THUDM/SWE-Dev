@@ -1,6 +1,6 @@
 # 🚀 SWE-Dev: Building Software Engineering Agents with Training and Inference Scaling
 
-> Haoran Wang*, Zhenyu Hou*, Yao Wei*, Yuxiao Dong, Jie Tang
+> Haoran Wang*, Zhenyu Hou*, Yao Wei*, Jie Tang, Yuxiao Dong
 
 📝 [Blog](https://www.notion.so/ubecwang/1bc32cf963e080b2a01df2895f66021f?v=1bc32cf963e0810ca07e000c86c4c1e1) | 🤗 [Huggingface](https://huggingface.co/SWE-Dev) | 💻[Github](https://github.com/UbeCc/SWE-Dev)
 
