@@ -31,16 +31,6 @@ REVISE_ROUNDS = 0
 code_model = os.environ.get("OPENAI_BASE_MODEL", "Llama-3.3-70B-Instruct")
 code_base_url = os.environ.get("OPENAI_BASE_URL", None)
 
-def get_url():
-    return random.choice(["https://api.chatglm.cn/v1"])
-    # return random.choice(["http://60.165.239.98:9023/v1", "https://api.chatglm.cn/v1"])
-
-def get_model(url):
-    if url == "https://api.chatglm.cn/v1":
-        return "public-glm-4-plus"
-    else:
-        return "Llama-3.3-70B-Instruct"
-
 def test_formatter(testcase):
     return TESTCASE_FORMAT.format(testcase["content"], testcase["env"])
 
@@ -58,7 +48,6 @@ def setup_logging(output_folder, console=False):
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
-    # handlers.append(file_handler)
     if console:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
@@ -222,13 +211,8 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
     else:
         location = get_location(loc)
         project_tree, patch_blocks = location["project_tree"], location["patch_blocks"]
-
-        # The patch is not related to python
         if not patch_blocks:
-            # logger.info(f"No patch blocks, {repr(location)}")
             return None
-        # else:
-        #     logger.info("Have blocks")
 
     try:
         function_dict = generate_signatures(extract_classes_and_functions_from_directory(repo_playground), type="function")
@@ -253,11 +237,11 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                     prompt = TESTCASE_GENERATION.format(repo, statement, cur_hints_text, patch, cur_project_tree, desc if desc else "Try to reproduce the results in the problem statement.", content).strip()
                     if revise:
                         if with_patch:
-                            url = get_url()
+                            url = code_base_url
                             resp, _ = call(
                                 messages=[{"role": "user", "content": EXTRACT_API_PROMPT.format(history)}],
                                 max_tokens=4096,
-                                model=get_model(url),
+                                model=code_model,
                                 # base_url=code_base_url,
                                 # base_url=code_urls[random.randint(0, len(code_urls) - 1)],
                                 base_url=url,
@@ -272,27 +256,21 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                                 apis = "No API provided"
                             prompt = REVISION_AFTER_PROMPT.format(repo, statement, "No Hints Text Provided", patch, cur_project_tree, content, apis, test_formatter(testcase), history)
                         else:
-                            raise NotImplementedError
                             prompt = REVISION_BEFORE_PROMPT.format(repo, statement, patch, cur_project_tree, content, test_formatter(testcase))
-                    # logger.critical("START RESP")
-                    url = get_url()
+                    url = code_base_url
                     resp, _ = call(
                         messages=[{"role": "user", "content": prompt}],
                         max_tokens=4096,
-                        model=get_model(url),
-                        # base_url=code_base_url,
+                        model=code_model,
                         base_url=url,
                         logger=logger
                     )
-                    # logger.critical(f'resp: {resp}')
                     if resp != "Error":
                         return resp
                     else:
-                        # print(f'len(repo): {len(repo)}, len(statement): {len(statement)}, len(patch): {len(patch)}, len(content): {len(content)}. {cur_file_count} is too long, subtract 1...')
                         cur_hints_text = "No Hints Text Provided"
                         cur_file_count -= 1
                 except Exception as e: # We only take context errors
-                    # print(f'len(repo): {len(repo)}, len(statement): {len(statement)}, len(patch): {len(patch)}. {cur_file_count} is too long, subtract 1...')
                     cur_file_count -= 1
             return None
 
@@ -300,7 +278,6 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
         descs = loc["descs"]
         for desc in descs:
             resp = get_raw_test(testcase=None, desc=desc, revise=False)
-            # logger.critical(repr(resp))
             if resp:
                 raw_tests.append(resp)
         resp = get_raw_test(testcase=None, desc=None, revise=False)
@@ -312,28 +289,22 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             try:
                 generated_envs, generated_tests = parse_testcase(raw_test, f"{CONDA_BASE}/envs/swedev_{instance_id}/bin/pip")
                 if not generated_tests:
-                    # print(f"Failed to parse test: {repr(raw_test)}")
                     continue
                 for generated_env, generated_test in zip(generated_envs, generated_tests):
-                    # logger.critical(f'Generated {generated_test}')
                     if generated_test:
                         tests.append({
                             "raw": raw_test,
                             "id": count,
                             "content": generated_test,
                             "env": generated_env,
-                            # the last one is generated directly without description
                             "description": descs[i] if i != len(raw_tests) - 1 else None,
                         })
                         count += 1
             except Exception as e:
                 continue
 
-        # if len(tests) == 0:
-        #     print("No tests available", len(raw_tests))
         logger.info(f"Finishing raw test generation. Raw test length: {len(raw_tests)}, Parsed test length: {len(tests)}")
 
-        # Check whether the test is valid
         if REVISE_ROUNDS != 0:
             logger.critical("start initing")
             init_env(env_name, repo, repo_playground, commit_id, testcases=None, logger=logger)
@@ -349,11 +320,9 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                     text=True,
                     check=True
                 )
-                # print(result)
             except subprocess.CalledProcessError as e:
                 print(f"Error applying patch: {e}")
                 status = False
-                # print(e, repo_path, commit_id)
             if status:
                 try:
                     for i, test in enumerate(tests):
@@ -362,11 +331,8 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                         test_env = test["env"]
                         for round in range(REVISE_ROUNDS):
                             logger.critical(f"revise round: {round}")
-                            # setup env
                             setup_env(env_name, repo_path, [test], logger)
                             result = run_tests(repo, repo_playground, env_name, [test], correct_only=False, given_testcase=False, logger=logger, build_phase=True)[0]
-                            with open("result.txt", "a") as f:
-                                f.write(f'{result}\n')
                             if result["status"] == "success":
                                 tests[i]["content"] = test_content
                                 tests[i]["env"] = test_env

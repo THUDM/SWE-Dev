@@ -67,8 +67,6 @@ def fetch_github_data(url, headers, max_retries=12):
 
         except Exception as e:
             if repo_response.status_code == 404:
-                with open("not_found_repos.txt", "a") as f:
-                    f.write(f'{url}\n')
                 return None
             
             retries += 1
@@ -129,11 +127,9 @@ def process_urls(input_file, output_file, max_workers):
     :param output_file: Path to the output .jsonl file for saving results.
     :param max_workers: Number of threads for concurrent processing.
     """
-    # Read the GitHub URLs from the input file
     with open(input_file, "r") as f:
         urls = [line.strip() for line in f if line.strip()]
 
-    # Load already processed URLs
     processed_urls = load_processed_urls(output_file, "not_found_repos.txt")
     urls_to_process = [url for url in urls if url not in processed_urls]
 

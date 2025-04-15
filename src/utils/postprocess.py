@@ -1,11 +1,5 @@
 import ast
-import os
 import re
-import subprocess
-import uuid
-from collections import OrderedDict
-
-from src.utils.preprocess_data import get_repo_files
 
 
 def extract_code_blocks(text):

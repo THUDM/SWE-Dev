@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from src.localizer.get_repo_structure import get_project_structure_from_scratch
-from src.utils.preprocess_data import filter_none_python, filter_out_test_files
+from src.utils.preprocess import filter_none_python, filter_out_test_files
 from tqdm import tqdm
 
 DEBUG = True
@@ -136,8 +136,6 @@ def get_location(data):
         return None
     instance_id = structure["instance_id"]
 
-    hints_text = data["hints_text"]
-    problem_statement = data["problem_statement"]
     structure = structure["structure"]
     filter_none_python(structure)
     filter_out_test_files(structure)

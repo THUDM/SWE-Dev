@@ -157,7 +157,6 @@ def scrape_github_repositories(args):
 
     return all_repositories
 
-# Parse command-line arguments
 def parse_args():
     parser = argparse.ArgumentParser(description="Scrape GitHub repositories using GraphQL API.")
     parser.add_argument("--max_repos", type=int, default=1000, help="Maximum number of repositories to scrape.")

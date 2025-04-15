@@ -14,7 +14,6 @@ from datetime import datetime
 from typing import Dict, List
 
 import jsonlines
-from src.testcases.eval_testcases import init_env, reset, run_tests, setup_env
 from src.utils.error_handler import *
 from src.utils.extract_signs import *
 from src.utils.prompts import *
@@ -31,12 +30,6 @@ PLAYGROUND = os.environ.get("PLAYGROUND", "")
 DEBUG = False
 REVISE_ROUNDS = 2
 desc_model = os.environ.get("OPENAI_BASE_MODEL", None)
-
-def get_model(url):
-    if url == "https://api.chatglm.cn/v1":
-        return "public-glm-4-plus"
-    else:
-        return "Llama-3.3-70B-Instruct"
 
 def test_formatter(testcase):
     return TESTCASE_FORMAT.format(testcase["content"], testcase["env"])
@@ -176,7 +169,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
         raw_desc, _ = tracked_call(
             messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(repo, statement, patch, hints_text)}],
             max_tokens=2048,
-            model=get_model(url),
+            model=desc_model,
             base_url=url
         )
         if raw_desc == "Error":
@@ -184,14 +177,14 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             raw_desc, _ = tracked_call(
                 messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(repo, statement, patch, "No Hints Text Provided")}],
                 max_tokens=2048,
-                model=get_model(url),
+                model=desc_model,
                 base_url=url
             )     
         
         desc, _ = tracked_call(
             messages=[{"role": "user", "content": MAKE_GHERKIN_TEST.format(repo, statement, patch, hints_text, raw_desc)}],
             max_tokens=2048,
-            model=get_model(url),
+            model=desc_model,
             base_url=url
         )
         if desc == "Error":
@@ -199,7 +192,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             desc, _ = tracked_call(
                 messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(repo, statement, patch, "No Hints Text Provided")}],
                 max_tokens=2048,
-                model=get_model(url),
+                model=desc_model,
                 base_url=url
             )
         pattern = r'```(?:gherkin\n|\n)(.*?)\n```'
@@ -303,5 +296,4 @@ def main():
     make_testcases(args, logger)
 
 if __name__ == "__main__":
-    # test_parsing(); exit()
     main()

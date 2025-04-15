@@ -16,29 +16,8 @@ from tqdm import tqdm
 
 load_dotenv()
 
-# Global set to track downloaded repositories
 downloaded_repos = set()
 downloaded_repos_lock = Lock()
-
-# Path to track failed repositories
-FAILED_REPOS_FILE = "failed_repos.json"
-
-def load_failed_repos(output_folder):
-    """Load the failed repositories from the JSON file."""
-    if os.path.exists(FAILED_REPOS_FILE):
-        with open(f'{output_folder}/FAILED_REPOS_FILE', "r") as f:
-            try:
-                return set(json.load(f))
-            except json.JSONDecodeError:
-                return set()
-    return set()
-
-def save_failed_repo(repo_name, output_folder):
-    """Save a repository to the failed repositories file."""
-    failed_repos = load_failed_repos(output_folder)
-    failed_repos.add(repo_name)
-    with open(f'{output_folder}/FAILED_REPOS_FILE', "w") as f:
-        json.dump(list(failed_repos), f)
 
 def split_instances(input_list: list, n: int) -> list:
     avg_length = len(input_list) // n
@@ -60,14 +39,6 @@ def clone_repo(repo_name, output_folder):
     
     repo = repo_name.split("/")[-1]
     
-    # Load failed repositories
-    failed_repos = load_failed_repos(output_folder)
-    
-    # Check if the repo is in the failed list
-    if repo_name in failed_repos:
-        print(f"Repository {repo_name} had previously failed to clone, skipping...")
-        return
-
     with downloaded_repos_lock:
         if repo in downloaded_repos:
             print(f"Repository {repo} has already been cloned, skipping...")
@@ -107,8 +78,6 @@ def clone_repo(repo_name, output_folder):
             time.sleep(2 ** retry)
     else:
         print(f"Failed to clone {repo_name} after 5 attempts.")
-        # Mark this repository as failed
-        save_failed_repo(repo_name, output_folder)
 
 def process_repo(repo, output_folder, max_pulls, cutoff_date, token_iterator):
     repo = repo.strip(",").strip()
@@ -200,8 +169,6 @@ def main(
         for file in os.listdir(used_path):
             if file.endswith("-instances.jsonl"):
                 used.extend([file.replace("-task-instances.jsonl", "")])
-        # with jsonlines.open("/root/CodeAgent/results/issues/all_tasks.jsonl", "r") as f:
-        #     used = [d['repo'] for d in f]
     repos = [r for r in repos if not r.split("/")[-1] in used]
     print(f"rest repos: {len(repos)}")
     if start_index is not None or end_index is not None:
@@ -213,7 +180,6 @@ def main(
 
     token_iterator = cycle(tokens)  # Create a round-robin iterator for tokens
 
-    # Prepare thread pool for concurrent processing
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [
             executor.submit(process_repo, repo, output_folder, max_pulls, cutoff_date, token_iterator)
@@ -225,7 +191,6 @@ def main(
             except Exception as e:
                 print(f"Error processing repository: {str(e)}")
 
-    # Combine all repos
     path_tasks = os.path.join(output_folder, "tasks")
     all_tasks = []
     files = os.listdir(path_tasks)

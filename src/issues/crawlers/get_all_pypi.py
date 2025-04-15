@@ -102,7 +102,6 @@ async def main():
     packages = await get_all_packages()
     random.shuffle(packages)
     chunk_size = 50
-    sem = asyncio.Semaphore(10)
 
     async with aiohttp.ClientSession() as session:
         with tqdm(total=len(packages)) as pbar:

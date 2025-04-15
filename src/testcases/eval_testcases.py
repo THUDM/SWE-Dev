@@ -24,7 +24,7 @@ assert CONDA_BIN != "conda", "CONDA_BIN environment variable not set"
 def is_test_folder_empty(folder_path):
     try:
         result = subprocess.run(
-            ["/raid/swedev/miniforge3/envs/swedev/bin/pytest", "--collect-only", folder_path],
+            ["pytest", "--collect-only", folder_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
@@ -88,7 +88,7 @@ def setup_env_swe(instance, env_name, repo_path, logger=None, install_deps=False
                 shell=True
             )
             result = subprocess.run(
-                f'conda env create -f environment.yaml -n {env_name}; pip config set global.index-url https://mirrors.aliyun.com/pypi/simple',
+                f'conda env create -f environment.yaml -n {env_name}',
                 cwd=repo_path,
                 capture_output=True,
                 text=True,
@@ -176,7 +176,6 @@ def reset(repo, repo_playground, commit_id, logger, remove=False):
         
     if (not os.path.exists(repo_path) or len(os.listdir(repo_path)) <= 1) or (remove and os.path.exists(repo_path)):
         if os.path.exists(repo_playground):
-            # logger.info(f"Repo {repo_name} at {repo_playground} exists, removing...")
             os.system(f'rm -rf {repo_playground}')
         os.makedirs(repo_playground, exist_ok=True)
         clone_repo(repo, repo_playground, logger)
@@ -197,7 +196,6 @@ def run_tests(repo, repo_playground, env_name, testcases, correct_only=False, gi
         midfixs = [midfix]
     else:
         midfix = ""
-        # midfixs = ['', 'tests', 'src', repo_name.lower()]
         midfixs = ['']
     if not given_testcase:
         for idx, testcase in enumerate(testcases):
@@ -235,7 +233,6 @@ def run_tests(repo, repo_playground, env_name, testcases, correct_only=False, gi
 
                     if correct_only:
                         if any(exec_result == 'FAILED' for exec_result in test_functions.values()):
-                            corrected = True
                             with open(test_path, 'r') as f:
                                 content = f.read()
                             tree = ast.parse(content)
@@ -262,7 +259,6 @@ def run_tests(repo, repo_playground, env_name, testcases, correct_only=False, gi
                             exit_code = 0
         
                     if incorrect_only:
-                        raise NotImplementedError
                         if any(exec_result == 'PASSED' for exec_result in test_functions.values()):
                             corrected = True
                             with open(test_path, 'r') as f:
@@ -308,12 +304,12 @@ def run_tests(repo, repo_playground, env_name, testcases, correct_only=False, gi
                     }
 
                     result["functions"] = test_functions
-                    # if os.path.exists(test_path):
-                    #     os.remove(test_path)
+                    if os.path.exists(test_path):
+                        os.remove(test_path)
 
                 except Exception as e:
-                    # if os.path.exists(test_path):
-                    #     os.remove(test_path)
+                    if os.path.exists(test_path):
+                        os.remove(test_path)
                     logger.error(f"Error running test case {idx}: {str(e)}")
                     result["status"] = "error"
                     result["output"] = {
@@ -329,7 +325,7 @@ def run_tests(repo, repo_playground, env_name, testcases, correct_only=False, gi
                 results.append(result)
                 success = 1
                 break
-                # logger.info(f"Test case {idx}({'w/ patch' if correct_only or build_phase else 'wo/ patch'}) completed with status: {result['status']}")
+                logger.info(f"Test case {idx}({'w/ patch' if correct_only or build_phase else 'wo/ patch'}) completed with status: {result['status']}")
                 
             if not success:
                 if not "content" in result:
@@ -377,7 +373,7 @@ def write_file(file_path, content, cwd=None, extra_conmmands=None, logger=None):
     if extra_conmmands:
         try:
             if 'patch.diff' in file_path and not 'test_patch.diff' in file_path:
-                result = subprocess.run(
+                subprocess.run(
                     f"sed -i 's/\\r//g' {file_path}",
                     cwd=cwd,
                     capture_output=True,
@@ -438,7 +434,6 @@ def evaluate_testcase(instance, given_testcase=None, eval_mode=False, logger=Non
                 "content": content
             })
             
-    logger.critical(f"LEN OF TESTCASES: {len(testcases)}")
     if not testcases:
         return None
 

@@ -110,7 +110,6 @@ def extract_classes_and_functions(file_path, root_path=None):
             signs.append({
                 "type": "function",
                 "name": f"{module_name}.{node.name}",
-                # "name": f"{node.name}",
                 "args": args,
             })
     return signs

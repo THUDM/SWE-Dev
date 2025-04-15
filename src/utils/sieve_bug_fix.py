@@ -54,8 +54,6 @@ def process_data(data):
 
     # by default, is_debug = 0
     data['is_debug'] = is_debug
-    with open('debug_instances_true_v2.jsonl', 'a') as f:
-        f.write(json.dumps(data) + '\n')
 
 def process_jsonl(file_path):
     with open(file_path, 'r') as f:

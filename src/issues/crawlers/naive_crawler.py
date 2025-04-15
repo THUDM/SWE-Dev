@@ -60,10 +60,10 @@ def fetch_repositories(query, page=1, per_page=100, max_retries=5):
             
             if response.status_code == 200:
                 return response.json()
-            elif response.status_code == 403:  # Rate limit
+            elif response.status_code == 403:
                 print(f"Rate limit hit, waiting 60 seconds... (Attempt {retry_count + 1}/{max_retries})")
                 time.sleep(60)
-            elif response.status_code == 422:  # Only first 1000 results available
+            elif response.status_code == 422:
                 print(f"422 Error (only 1000 results available), query: {query}")
                 return {"items": []}
             else:

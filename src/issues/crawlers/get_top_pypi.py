@@ -99,7 +99,6 @@ def get_package_stats(data_tasks, output_file, num_workers, start_at=0):
         num_workers (int): Number of worker processes
         start_at (int): Index to start processing from
     """
-    # Get already processed URLs if file exists
     processed_urls = set()
     if os.path.exists(output_file):
         with open(output_file) as f:
@@ -110,7 +109,6 @@ def get_package_stats(data_tasks, output_file, num_workers, start_at=0):
                 except:
                     continue
 
-    # Create simplified tasks list with only necessary data
     tasks = [
         (idx, chunk["title"], chunk["href"]) 
         for idx, chunk in enumerate(data_tasks[start_at:], start_at)  # Start from start_at index
@@ -121,7 +119,6 @@ def get_package_stats(data_tasks, output_file, num_workers, start_at=0):
         print("All packages have been processed already")
         return
 
-    # Process packages in parallel
     with Pool(processes=num_workers) as pool:
         results = []
         for result in tqdm(
@@ -132,7 +129,6 @@ def get_package_stats(data_tasks, output_file, num_workers, start_at=0):
             if result:
                 results.append(result)
         
-        # Write results to output file
         with open(output_file, "a") as f:
             for res in results:
                 print(json.dumps(res), file=f, flush=True)
@@ -145,7 +141,6 @@ def main():
     parser.add_argument("--start_at", type=int, default=0, help="Index to start processing packages from")
     args = parser.parse_args()
 
-    # Set up initial headless browser
     options = Options()
     options.add_argument('--headless')
     options.add_argument('--disable-gpu')

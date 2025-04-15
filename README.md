@@ -172,3 +172,13 @@ python src/testcases/swebench_formatter.py \
     --output_name swe-qwen-45round-v0227.jsonl \
     --dataset_type openhands
 ```
+
+## 🙏 Acknowledgements
+
+We thank the following open-source projects for their contributions:
+
+- [**SWE-bench**](https://github.com/SWE-bench/SWE-bench)
+
+- [**Agentless**](https://github.com/OpenAutoCoder/Agentless)
+
+- [**OpenHands**](https://github.com/All-Hands-AI/OpenHands)
