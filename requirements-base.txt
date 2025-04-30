@@ -1,6 +1,9 @@
 pytest
-cython
-distro
+pytest-timeout
+pytest-env
+pytest-sugar
+pytest-html
+pytest-metadata
 pytest-cov
 pytest-xdist
 pytest-mock
@@ -10,6 +13,8 @@ pytest-benchmark
 pytest-randomly
 pytest-json
 responses
+cython
+distro
 mock
 hypothesis
 freezegun
@@ -17,3 +22,10 @@ trustme
 requests-mock
 requests
 tomlkit
+black
+flake8
+mypy
+isort
+pre-commit
+coverage
+tox
