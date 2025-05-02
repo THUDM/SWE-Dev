@@ -1,10 +1,9 @@
 import os
 import subprocess
 from src.utils.preprocess import parse_python_file
+from src.config import LOCAL_REPO_DIR
 
 DEBUG = False
-LOCAL_REPO_DIR = os.environ.get("LOCAL_REPO_DIR", "/raid/repos")
-assert LOCAL_REPO_DIR != "", "LOCAL_REPO_DIR is not set"
 
 def repo_to_top_folder(repo_name):
     """Get the top folder name from the repository name.

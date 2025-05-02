@@ -7,12 +7,14 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import cycle
 from threading import Lock
+from typing import Any, Dict, List
 
 import jsonlines
 from dotenv import load_dotenv
 from swebench.collect.build_dataset import main as build_dataset
 from swebench.collect.print_pulls import main as print_pulls
 from tqdm import tqdm
+from src.config import LOCAL_REPO_DIR, GITHUB_TOKENS
 
 load_dotenv()
 
@@ -34,8 +36,8 @@ def split_instances(input_list: list, n: int) -> list:
 
 def clone_repo(repo_name, output_folder):
     global downloaded_repos
-    base_dir = os.environ.get("LOCAL_REPO_DIR", None)
-    assert base_dir, "LOCAL_REPO_DIR environment variable not set"
+    base_dir = LOCAL_REPO_DIR
+    assert base_dir, "LOCAL_REPO_DIR not configured"
     
     repo = repo_name.split("/")[-1]
     
@@ -174,9 +176,9 @@ def main(
     if start_index is not None or end_index is not None:
         repos = repos[start_index:end_index]
     repos = reversed(repos)
-    tokens = os.getenv("GITHUB_TOKENS").split(",")
+    tokens = GITHUB_TOKENS
     if not tokens: 
-        raise Exception("Missing GITHUB_TOKEN, consider rerunning with GITHUB_TOKEN=$(gh auth token)")
+        raise Exception("Missing GITHUB_TOKENS in configuration, add to config file or set environment variable")
 
     token_iterator = cycle(tokens)  # Create a round-robin iterator for tokens
 

@@ -4,8 +4,9 @@ from src.utils.postprocess import extract_code_blocks, extract_locs_for_files
 from src.utils.preprocess import get_full_file_paths_and_classes_and_functions, line_wrap_content, show_project_structure
 from src.utils.utils import call
 import os
+from src.config import MODEL
 
-model = os.environ.get("MODEL", "gpt-4o")
+model = MODEL
 
 class FileLocalizer(ABC):
     """Abstract class for file localizer"""

@@ -14,12 +14,9 @@ from src.localizer.get_repo_structure import clone_repo
 from src.utils.utils import (extract_test_patch, get_environment_yml,
                              get_requirements)
 from tqdm import tqdm
+from src.config import PLAYGROUND_PATH, CONDA_BIN, CONDA_BASE
 
-PLAYGROUND_PATH = os.environ.get("PLAYGROUND", "/raid/playground")
 DEBUG = False
-CONDA_BIN = os.environ.get("CONDA_BIN", "conda")
-CONDA_BASE = os.environ.get("CONDA_BASE", "/mnt/nvme/miniforge3")
-assert CONDA_BIN != "conda", "CONDA_BIN environment variable not set"
 
 def is_test_folder_empty(folder_path):
     try:

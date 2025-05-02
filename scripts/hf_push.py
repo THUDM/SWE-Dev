@@ -3,6 +3,7 @@ import os
 
 from datasets import Dataset, DatasetDict, load_dataset
 from huggingface_hub import HfApi, HfFolder, Repository
+from src.config import get_config_value
 
 
 def download():
@@ -75,7 +76,9 @@ def upload_to_huggingface(dataset_name, file_split_mapping, token):
 
 def upload():
     DATASET_NAME = "SWE-Dev/SWE-Dev"
-    TOKEN = os.environ.get("HF_TOKEN")
+    TOKEN = get_config_value("huggingface.token", os.environ.get("HF_TOKEN"))
+    if not TOKEN:
+        raise ValueError("HF_TOKEN not configured. Please configure huggingface.token in your config file or set the HF_TOKEN environment variable.")
     FILE_SPLIT_MAPPING = {
         "train": "results/swedev.jsonl",
     }

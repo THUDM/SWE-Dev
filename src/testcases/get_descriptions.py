@@ -19,17 +19,16 @@ from src.utils.extract_signs import *
 from src.utils.prompts import *
 from src.utils.utils import *
 from tqdm import tqdm
+from src.config import CONDA_BASE, PLAYGROUND_PATH, OPENAI_BASE_MODEL, OPENAI_BASE_URL
 
 call_counter = tqdm(desc="API Calls", unit="calls")
 total_counter = tqdm(desc="Progress", unit="items")
 saved_counter = tqdm(desc="Saved", unit="items")
 start_time = time.time()
 
-CONDA_BASE = os.environ.get("CONDA_BASE", "/mnt/nvme/miniforge3")
-PLAYGROUND = os.environ.get("PLAYGROUND", "")
 DEBUG = False
 REVISE_ROUNDS = 2
-desc_model = os.environ.get("OPENAI_BASE_MODEL", None)
+desc_model = OPENAI_BASE_MODEL
 
 def test_formatter(testcase):
     return TESTCASE_FORMAT.format(testcase["content"], testcase["env"])
@@ -149,7 +148,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
     patch = loc["patch"]
     commit_id = loc["base_commit"]
     repo_id = f'{instance_id}_{repo.replace("/", "_")}_{commit_id}'
-    repo_playground = os.path.join(PLAYGROUND, repo_id, repo.split("/")[-1])
+    repo_playground = os.path.join(PLAYGROUND_PATH, repo_id, repo.split("/")[-1])
 
     try:
         statement = loc['problem_statement']
@@ -164,7 +163,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             call_counter.set_postfix({'RPS': f'{current_rps:.2f}'})
             return call(*args, **kwargs)
 
-        url = os.environ["OPENAI_BASE_URL"]
+        url = OPENAI_BASE_URL
 
         raw_desc, _ = tracked_call(
             messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(repo, statement, patch, hints_text)}],

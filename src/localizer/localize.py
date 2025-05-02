@@ -13,9 +13,9 @@ from typing import Any, Dict, List, Tuple
 from src.localizer.get_repo_structure import get_project_structure_from_scratch
 from src.utils.preprocess import filter_none_python, filter_out_test_files
 from tqdm import tqdm
+from src.config import PLAYGROUND_PATH
 
 DEBUG = True
-PLAYGROUND_PATH = os.environ.get("PLAYGROUND", "/tmp/playground")
 
 def has_python_files(path, max_depth=3, current_depth=0):
     if current_depth >= max_depth:

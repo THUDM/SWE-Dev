@@ -2,8 +2,16 @@ import argparse
 import json
 import logging
 import os
+import re
 from typing import Optional
 
+import jsonlines
+import logzero
+from ghapi.all import GhApi
+from logzero import logger
+from tqdm import tqdm
+from unidiff import PatchSet
+from src.config import GITHUB_TOKENS
 from swebench.collect.utils import (Repo, extract_patches, extract_problem_statement_and_hints)
 
 logging.basicConfig(
@@ -95,7 +103,7 @@ def has_test_patch(instance: dict) -> bool:
 
 def main(pr_file: str, output: str, token: Optional[str] = None):
     """
-    Main thread for creating task instances from pull requests
+    Process Pull Request file and extract instances, writing them to output file.
 
     Args:
         pr_file (str): path to pull request JSONL file
@@ -103,8 +111,11 @@ def main(pr_file: str, output: str, token: Optional[str] = None):
         token (str): GitHub token
     """
     if token is None:
-        # Get GitHub token from environment variable if not provided
-        token = os.environ.get("GITHUB_TOKEN")
+        # Get GitHub token from configuration
+        if GITHUB_TOKENS:
+            token = GITHUB_TOKENS[0]
+        else:
+            raise ValueError("GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable.")
 
     def load_repo(repo_name):
         # Return repo object for a given repo name

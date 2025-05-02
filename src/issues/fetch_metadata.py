@@ -7,13 +7,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 from tqdm import tqdm
+from src.config import GITHUB_TOKENS
 
-# Load GitHub tokens from environment variables
-gh_tokens = os.environ.get("GITHUB_TOKENS").split(",")
+# Use GitHub tokens from config
+if not GITHUB_TOKENS:
+    raise ValueError("GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable.")
 
 def get_token():
     """Randomly select a GitHub token from the list."""
-    return random.choice(gh_tokens)
+    return random.choice(GITHUB_TOKENS)
 
 def fetch_github_data(url, headers, max_retries=12):
     """

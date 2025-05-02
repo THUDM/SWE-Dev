@@ -6,6 +6,73 @@ This repository is a comprehensive pipeline for creating developer-oriented data
 
 ## 🔄 Pipeline Overview
 
+### Step 0: 🛠️ Configuration Setup
+
+SWE-Dev uses [Hydra](https://hydra.cc/) for configuration management. All settings are stored in a single YAML file.
+
+#### Configuration File
+
+The main configuration file is located at `conf/config/default.yaml` and contains settings for all pipeline stages:
+
+```yaml
+# Basic directory settings
+paths:
+  conda_bin: /path/to/conda
+  local_repo_dir: /path/to/repos
+
+# API credentials
+github:
+  tokens: []  # Add your GitHub tokens here
+
+# Settings for each pipeline stage
+data_collection:
+  max_repos: 5000
+  # ...
+
+code_localization:
+  # ...
+
+test_generation:
+  # ...
+```
+
+#### Validating Configuration
+
+To validate your configuration:
+
+```bash
+python -m src.config --validate
+```
+
+#### Viewing Configuration
+
+To view the current configuration:
+
+```bash
+python -m src.config --print
+```
+
+#### Overriding Configuration in Command Line
+
+You can override any configuration value when running scripts:
+
+```bash
+# Override configuration values
+python your_script.py paths.local_repo_dir=/new/path github.tokens=[token1,token2]
+```
+
+#### Using Configuration in Code
+
+```python
+from src.config import get_config_value
+
+# Access configuration values
+conda_bin = get_config_value('paths.conda_bin')
+max_repos = get_config_value('data_collection.max_repos')
+```
+
+See `src/examples/simple_config_example.py` for a complete usage example.
+
 ### Step 1: 📊 Data Collection from GitHub
 
 Set up the following environment variables:

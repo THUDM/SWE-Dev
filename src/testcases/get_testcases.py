@@ -22,14 +22,13 @@ from src.utils.extract_signs import *
 from src.utils.prompts import *
 from src.utils.utils import *
 from tqdm import tqdm
+from src.config import CONDA_BASE, PLAYGROUND_PATH, OPENAI_BASE_MODEL, OPENAI_BASE_URL
 
-CONDA_BASE = os.environ.get("CONDA_BASE", "/mnt/nvme/miniforge3")
-PLAYGROUND_PATH = os.environ.get("PLAYGROUND", "/tmp/playground")
 DEBUG = False
 REVISE_ROUNDS = 0
 
-code_model = os.environ.get("OPENAI_BASE_MODEL", "Llama-3.3-70B-Instruct")
-code_base_url = os.environ.get("OPENAI_BASE_URL", None)
+code_model = OPENAI_BASE_MODEL
+code_base_url = OPENAI_BASE_URL
 
 def test_formatter(testcase):
     return TESTCASE_FORMAT.format(testcase["content"], testcase["env"])

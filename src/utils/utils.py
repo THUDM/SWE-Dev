@@ -11,6 +11,10 @@ from pathlib import Path
 import requests
 from modelscope import AutoTokenizer
 import os
+import random
+import re
+import string
+from src.config import OPENAI_BASE_URL, OPENAI_BASE_MODEL, OPENAI_API_KEY
 
 SWE_BENCH_URL_RAW = "https://raw.githubusercontent.com/"
 
@@ -199,10 +203,10 @@ def call(
 ):
     if len(messages[0]['content']) > 200000:
         return "Error", {}
-    api_key = os.environ.get("OPENAI_API_KEY", "sk-test")
+    api_key = OPENAI_API_KEY
     if not model:
-        model = os.environ.get("OPENAI_BASE_MODEL", 'gpt-4o')
-        base_url = os.environ.get("OPENAI_BASE_URL", 'http://api.openai.com/v1')
+        model = OPENAI_BASE_MODEL
+        base_url = OPENAI_BASE_URL
     headers = {
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'

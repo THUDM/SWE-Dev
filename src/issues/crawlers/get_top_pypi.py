@@ -11,14 +11,13 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
+from src.config import GITHUB_TOKENS
 
-gh_tokens = os.environ.get("GITHUB_TOKENS")
-if not gh_tokens:
-    msg = "Please set the GITHUB_TOKENS environment variable."
+if not GITHUB_TOKENS:
+    msg = "GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable."
     raise ValueError(msg)
-gh_tokens = gh_tokens.split(",")
-apis = [GhApi(token=gh_token) for gh_token in gh_tokens]
-print("GH_tokens:", gh_tokens)
+apis = [GhApi(token=gh_token) for gh_token in GITHUB_TOKENS]
+print("GH_tokens:", GITHUB_TOKENS)
 def get_api():
     return random.sample(apis, 1)[0]
 

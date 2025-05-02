@@ -11,11 +11,11 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from urllib3.exceptions import MaxRetryError, ProxyError
+from src.config import GITHUB_TOKENS
 
 GITHUB_API_URL = "https://api.github.com/search/repositories"
-GITHUB_TOKENS = os.environ.get('GITHUB_TOKENS', '').split(',')
-if not GITHUB_TOKENS or GITHUB_TOKENS[0] == '':
-    raise ValueError("Please set GITHUB_TOKENS environment variable with comma-separated tokens")
+if not GITHUB_TOKENS:
+    raise ValueError("GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable.")
 
 def get_headers():
     token = random.choice(GITHUB_TOKENS)

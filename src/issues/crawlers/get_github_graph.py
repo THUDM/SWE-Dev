@@ -6,11 +6,11 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
+from src.config import GITHUB_TOKENS
 
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
-GITHUB_TOKENS = os.environ.get('GITHUB_TOKENS', '').split(',')
-if not GITHUB_TOKENS or GITHUB_TOKENS[0] == '':
-    raise ValueError("Please set the GITHUB_TOKENS environment variable with comma-separated tokens.")
+if not GITHUB_TOKENS:
+    raise ValueError("GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable.")
 
 def get_headers():
     token = GITHUB_TOKENS[0]
