@@ -14,7 +14,7 @@ import os
 import random
 import re
 import string
-from src.config import OPENAI_BASE_URL, OPENAI_BASE_MODEL, OPENAI_API_KEY
+from src.config import Config
 
 SWE_BENCH_URL_RAW = "https://raw.githubusercontent.com/"
 
@@ -203,10 +203,10 @@ def call(
 ):
     if len(messages[0]['content']) > 200000:
         return "Error", {}
-    api_key = OPENAI_API_KEY
+    api_key = Config.openai_api_key
     if not model:
-        model = OPENAI_BASE_MODEL
-        base_url = OPENAI_BASE_URL
+        model = Config.openai_base_model
+        base_url = Config.openai_base_url
     headers = {
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'

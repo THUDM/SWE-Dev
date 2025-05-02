@@ -43,6 +43,8 @@ description:
 testcase:
   model: ${openai.base_model}
   base_url: ${openai.base_url}
+  revise_rounds: 0  # Number of rounds to revise testcases
+  debug: false
 
 # Test generation settings
 test_generation:

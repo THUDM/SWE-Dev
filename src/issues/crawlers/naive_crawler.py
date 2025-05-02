@@ -1,24 +1,29 @@
 import argparse
 import json
+import multiprocessing as mp
 import os
 import random
+import re
+import signal
+import ssl
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from multiprocessing import Pool, Lock
 
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from urllib3.exceptions import MaxRetryError, ProxyError
-from src.config import GITHUB_TOKENS
+from src.config import Config
 
 GITHUB_API_URL = "https://api.github.com/search/repositories"
-if not GITHUB_TOKENS:
+if not Config.GITHUB_TOKENS:
     raise ValueError("GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable.")
 
 def get_headers():
-    token = random.choice(GITHUB_TOKENS)
+    token = random.choice(Config.GITHUB_TOKENS)
     return {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3+json",

@@ -1,19 +1,22 @@
 import argparse
 import json
 import os
+import random
 import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Dict, List
 
 import requests
-from src.config import GITHUB_TOKENS
+from tqdm import tqdm
+from src.config import Config
 
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
-if not GITHUB_TOKENS:
-    raise ValueError("GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable.")
+if not Config.github_tokens:
+    raise ValueError("GitHub tokens not configured. Please configure github_tokens in your config file or set the GITHUB_TOKENS environment variable.")
 
 def get_headers():
-    token = GITHUB_TOKENS[0]
+    token = Config.github_tokens[0]
     return {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3+json",

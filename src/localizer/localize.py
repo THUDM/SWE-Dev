@@ -7,13 +7,18 @@ import os
 import re
 import subprocess
 import traceback
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from src.localizer.get_repo_structure import get_project_structure_from_scratch
-from src.utils.preprocess import filter_none_python, filter_out_test_files
+import jsonlines
+from swebench.collect.get_repo_structure import get_repo_structure
 from tqdm import tqdm
-from src.config import PLAYGROUND_PATH
+
+from src.config import Config
+from src.localizer.file_localizer import LLMFileLocalizer
+from src.localizer.get_repo_structure import get_project_structure_from_scratch, get_files_and_classes_for_repos
+from src.utils.preprocess import filter_none_python, filter_out_test_files
 
 DEBUG = True
 
@@ -129,7 +134,7 @@ def find_containing_blocks(file_path: str, start_line: int, end_line: int) -> st
 def get_location(data):
     """Process single instance."""
     structure = get_project_structure_from_scratch(
-        data["repo"], data["base_commit"], data["instance_id"], PLAYGROUND_PATH
+        data["repo"], data["base_commit"], data["instance_id"], Config.playground_path
     )
     if not structure:
         print('[No structure found]')
@@ -146,7 +151,7 @@ def get_location(data):
     repo_name = data["repo"]
     commit_id = data["base_commit"]
     repo_id = f'{instance_id}_{repo_name.replace("/", "_")}_{commit_id}'
-    repo_playground = os.path.join(PLAYGROUND_PATH, repo_id, repo_name.split("/")[-1])
+    repo_playground = os.path.join(Config.playground_path, repo_id, repo_name.split("/")[-1])
 
     try:
         subprocess.run(['git', 'add', '.'], cwd=repo_playground, capture_output=True, text=True)
@@ -179,7 +184,7 @@ def get_location(data):
 def process_single_instance(data: Dict[str, Any]) -> Dict[str, Any]:
     """Process single instance."""
     structure = get_project_structure_from_scratch(
-        data["repo"], data["base_commit"], data["instance_id"], PLAYGROUND_PATH
+        data["repo"], data["base_commit"], data["instance_id"], Config.playground_path
     )
     if not structure:
         print('[No structure found]')
@@ -200,7 +205,7 @@ def process_single_instance(data: Dict[str, Any]) -> Dict[str, Any]:
     repo_name = data["repo"]
     commit_id = data["base_commit"]
     repo_id = f'{instance_id}_{repo_name.replace("/", "_")}_{commit_id}'
-    repo_playground = os.path.join(PLAYGROUND_PATH, repo_id, repo_name.split("/")[-1])
+    repo_playground = os.path.join(Config.playground_path, repo_id, repo_name.split("/")[-1])
 
     try:
         subprocess.run(['git', 'add', '.'], cwd=repo_playground, capture_output=True, text=True)

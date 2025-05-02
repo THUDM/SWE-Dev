@@ -4,18 +4,23 @@ import os
 import random
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from itertools import islice
+from math import ceil
 
 import requests
+import aiohttp
+import asyncio
+import pandas as pd
 from tqdm import tqdm
-from src.config import GITHUB_TOKENS
+from src.config import Config
 
 # Use GitHub tokens from config
-if not GITHUB_TOKENS:
-    raise ValueError("GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable.")
+if not Config.github_tokens:
+    raise ValueError("GitHub tokens not configured. Please configure github_tokens in your config file or set the GITHUB_TOKENS environment variable.")
 
 def get_token():
     """Randomly select a GitHub token from the list."""
-    return random.choice(GITHUB_TOKENS)
+    return random.choice(Config.github_tokens)
 
 def fetch_github_data(url, headers, max_retries=12):
     """

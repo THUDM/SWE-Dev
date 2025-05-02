@@ -1,7 +1,7 @@
 import os
 import subprocess
 from src.utils.preprocess import parse_python_file
-from src.config import LOCAL_REPO_DIR
+from src.config import Config
 
 DEBUG = False
 
@@ -26,14 +26,14 @@ def checkout_commit(repo_path, commit_id):
         print(f"An unexpected error occurred: {e}")
 
 def clone_repo(repo, repo_playground):
-    DO_CLONE = (not os.path.exists(f"{LOCAL_REPO_DIR}/{repo_to_top_folder(repo)}")) or len(os.listdir(f"{LOCAL_REPO_DIR}/{repo_to_top_folder(repo)}")) <= 1
+    DO_CLONE = (not os.path.exists(f"{Config.local_repo_dir}/{repo_to_top_folder(repo)}")) or len(os.listdir(f"{Config.local_repo_dir}/{repo_to_top_folder(repo)}")) <= 1
     try:
         if DO_CLONE:
-            if os.path.exists(f"{LOCAL_REPO_DIR}/{repo_to_top_folder(repo)}"):
-                os.system(f'rm -rf {LOCAL_REPO_DIR}/{repo_to_top_folder(repo)}')
+            if os.path.exists(f"{Config.local_repo_dir}/{repo_to_top_folder(repo)}"):
+                os.system(f'rm -rf {Config.local_repo_dir}/{repo_to_top_folder(repo)}')
             for _ in range(3):
                 result = subprocess.run(
-                    f"git clone https://github.com/{repo}.git {LOCAL_REPO_DIR}/{repo_to_top_folder(repo)}",
+                    f"git clone https://github.com/{repo}.git {Config.local_repo_dir}/{repo_to_top_folder(repo)}",
                     check=True,
                     shell=True
                 )
@@ -41,7 +41,7 @@ def clone_repo(repo, repo_playground):
                     break
         os.makedirs(repo_playground, exist_ok=True)
         subprocess.run(
-            f"cp -r {LOCAL_REPO_DIR}/{repo_to_top_folder(repo)} {repo_playground}",
+            f"cp -r {Config.local_repo_dir}/{repo_to_top_folder(repo)} {repo_playground}",
             check=True,
             shell=True
         )

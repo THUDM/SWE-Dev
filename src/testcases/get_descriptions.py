@@ -11,7 +11,8 @@ import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Any, Set, Tuple
+from pathlib import Path
 
 import jsonlines
 from src.utils.error_handler import *
@@ -19,15 +20,16 @@ from src.utils.extract_signs import *
 from src.utils.prompts import *
 from src.utils.utils import *
 from tqdm import tqdm
-from src.config import CONDA_BASE, PLAYGROUND_PATH, OPENAI_BASE_MODEL, OPENAI_BASE_URL, get_config_value
+from src.config import Config
 
 call_counter = tqdm(desc="API Calls", unit="calls")
 total_counter = tqdm(desc="Progress", unit="items")
 saved_counter = tqdm(desc="Saved", unit="items")
 start_time = time.time()
 
-DEBUG = False
-REVISE_ROUNDS = 2
+# Use Config.Testcase for settings
+DEBUG = Config.Testcase.debug
+REVISE_ROUNDS = Config.Testcase.revise_rounds
 
 def test_formatter(testcase):
     return TESTCASE_FORMAT.format(testcase["content"], testcase["env"])
@@ -147,7 +149,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
     patch = loc["patch"]
     commit_id = loc["base_commit"]
     repo_id = f'{instance_id}_{repo.replace("/", "_")}_{commit_id}'
-    repo_playground = os.path.join(PLAYGROUND_PATH, repo_id, repo.split("/")[-1])
+    repo_playground = os.path.join(Config.playground_path, repo_id, repo.split("/")[-1])
 
     try:
         statement = loc['problem_statement']
@@ -162,8 +164,8 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             call_counter.set_postfix({'RPS': f'{current_rps:.2f}'})
             return call(*args, **kwargs)
 
-        description_model = get_config_value("description.model", OPENAI_BASE_MODEL)
-        description_base_url = get_config_value("description.base_url", OPENAI_BASE_URL)
+        description_model = Config.Description.model
+        description_base_url = Config.Description.base_url
 
         raw_desc, _ = tracked_call(
             messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(repo, statement, patch, hints_text)}],
@@ -216,7 +218,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
     except Exception as e:
         logging.info(e)
         os.system(f"rm -rf {repo_playground}")
-        os.system(f"rm -rf {CONDA_BASE}/envs/{instance_id}")
+        os.system(f"rm -rf {Config.conda_base}/envs/{instance_id}")
         # logger.error(f"Error processing instance {instance_id}: {str(e)}")
         # traceback.print_exc()
         return {
@@ -228,7 +230,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             "hints_text": loc["hints_text"],
             "base_commit": loc["base_commit"],
             "descs": [],
-            "model": get_config_value("description.model", OPENAI_BASE_MODEL)
+            "model": Config.Description.model
         }
         
 def make_testcases(args, logger: logging.Logger):
@@ -300,3 +302,136 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def make_conda_playground(cmd_or_str: str, folder_name: str = "", log_only=True, copy_files=True) -> str:
+    """
+    Creates a conda playground environment, runs a given command or string, and returns the output
+    """
+    conda_base = Config.conda_base
+    playground_path = Config.playground_path
+
+    sub_process = True
+    if not folder_name:
+        folder_name = str(int(time.time()))
+    if not os.path.exists(conda_base):
+        print(f"WARNING: Conda base directory {conda_base} does not exist. Falling back to running commands directly")
+        sub_process = False
+
+    if copy_files and playground_path:
+        if os.path.exists(os.path.join(playground_path, folder_name)):
+            print(f"Folder {folder_name} already exists in {playground_path}")
+            return ""
+        os.makedirs(os.path.join(playground_path, folder_name), exist_ok=True)
+
+    # Run the command or just return the string
+    if sub_process:
+        try:
+            # Make this a proper playground implementation 
+            # instead of the hallucinated code from the previous edit
+            cmd = f"cd {conda_base} && {cmd_or_str}"
+            result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8', errors='ignore')
+            return result
+        except subprocess.CalledProcessError as e:
+            return e.output.decode('utf-8', errors='ignore')
+    else:
+        return cmd_or_str
+
+def parse_test_case(test_case: str) -> dict:
+    """
+    Parses a test case
+    """
+    test_case = test_case.strip()
+    if not test_case:
+        return {"success": False}
+    # Try to run the test case
+    try:
+        # Try running the test case
+        result = make_conda_playground(test_case, log_only=False, copy_files=False)
+
+        # Check if there are import or other errors
+        test_case_lines = [line for line in test_case.split("\n") if line.strip()]
+        err_lines = [line for line in result.split("\n") if "rror" in line]
+        for i in range(len(test_case_lines)):
+            result_index = i
+            if result_index >= len(test_case_lines):
+                break
+            if test_case_lines[i] in err_lines:
+                print(f"ERROR: {test_case_lines[i]}")
+                if "ImportError" in test_case_lines[i]:
+                    # Try to fix import error
+                    module = re.search(r"ImportError: No module named '(.*)'", test_case_lines[i])
+                    if module:
+                        module = module.group(1)
+                        print(f"Trying to install {module}")
+                        os.system(f"cd {Config.conda_base} && pip install {module}")
+        return {"success": True, "test_case": test_case}
+    except Exception as e:
+        print(f"Error: {e}")
+        return {"success": False}
+
+def get_test_case_descriptions(test_instances: Dict[str, Any], output_file: str) -> List[Dict[str, Any]]:
+    """
+    Get test case descriptions for a list of test instances
+    """
+    # Get configuration from Config class
+    desc_model = Config.Description.model
+    base_url = Config.Description.base_url
+    
+    # Set up logger
+    logger = logging.getLogger(__name__)
+    
+    total_test_instances = len(test_instances)
+    print(f"Getting test case descriptions for {total_test_instances} test instances")
+    
+    results = []
+    for function_id, instance in tqdm(test_instances.items(), total=total_test_instances):
+        # Use the configured settings for API calls
+        result = get_openai_response(
+            messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], instance["hints_text"])}],
+            max_tokens=2048,
+            model=desc_model,
+            base_url=base_url,
+            logger=logger
+        )
+        if result == "Error":
+            print("Too long when generating raw desc")
+            result = get_openai_response(
+                messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], "No Hints Text Provided")}],
+                max_tokens=2048,
+                model=desc_model,
+                base_url=base_url,
+                logger=logger
+            )     
+        
+        desc, _ = get_openai_response(
+            messages=[{"role": "user", "content": MAKE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], instance["hints_text"], result)}],
+            max_tokens=2048,
+            model=desc_model,
+            base_url=base_url,
+            logger=logger
+        )
+        if desc == "Error":
+            print("Too long when generating desc")
+            desc, _ = get_openai_response(
+                messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], "No Hints Text Provided")}],
+                max_tokens=2048,
+                model=desc_model,
+                base_url=base_url,
+                logger=logger
+            )
+        pattern = r'```(?:gherkin\n|\n)(.*?)\n```'
+        descs = re.findall(pattern, desc, re.DOTALL)
+
+        results.append({
+            "repo": instance["repo"],
+            "instance_id": instance["instance_id"],
+            "problem_statement": instance["problem_statement"],
+            "patch": instance["patch"],
+            "created_at": instance["created_at"],
+            "hints_text": instance["hints_text"],
+            "base_commit": instance["base_commit"],
+            "descs": descs,
+            "model": desc_model
+        })
+
+    return results

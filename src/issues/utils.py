@@ -6,7 +6,7 @@ import random
 import re
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterator, Optional
 
@@ -19,7 +19,7 @@ import base64
 import json
 import tiktoken
 from logzero import logger
-from src.config import GITHUB_TOKENS
+from src.config import Config
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -44,9 +44,9 @@ class Repo:
         self.repo = self.call_api(self.api.repos.get, owner=owner, repo=name)
 
     def change_api(self):
-        if not GITHUB_TOKENS:
-            raise ValueError("GitHub tokens not configured. Please configure GITHUB_TOKENS in your config file or set the environment variable.")
-        self.token = random.sample(GITHUB_TOKENS, 1)[0]
+        if not Config.github_tokens:
+            raise ValueError("GitHub tokens not configured. Please configure github_tokens in your config file or set the GITHUB_TOKENS environment variable.")
+        self.token = random.sample(Config.github_tokens, 1)[0]
         self.api = GhApi(token=self.token)
 
     def call_api(self, func: Callable, **kwargs) -> dict|None:

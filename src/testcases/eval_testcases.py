@@ -14,7 +14,7 @@ from src.localizer.get_repo_structure import clone_repo
 from src.utils.utils import (extract_test_patch, get_environment_yml,
                              get_requirements)
 from tqdm import tqdm
-from src.config import PLAYGROUND_PATH, CONDA_BIN, CONDA_BASE
+from src.config import Config
 
 DEBUG = False
 
@@ -43,8 +43,8 @@ def setup_env(env_name, repo_path, testcases, logger=None):
                 .replace("\n", " ; \\\n")
                 .replace('"', "'")
             )
-            env_code = env_code.replace("pip", f'{CONDA_BASE}/envs/{env_name}/bin/python -m pip')
-            env_code = f'{CONDA_BIN} run -n {env_name} bash -c "{env_code}"'
+            env_code = env_code.replace("pip", f'{Config.conda_base}/envs/{env_name}/bin/python -m pip')
+            env_code = f'{Config.conda_bin} run -n {env_name} bash -c "{env_code}"'
             subprocess.run(
                 env_code, 
                 shell=True, 
@@ -60,7 +60,7 @@ def setup_env(env_name, repo_path, testcases, logger=None):
                 logger.error(f"Exception during environment setup: {str(e)}")
     try:
         subprocess.run(
-            f'{CONDA_BASE}/envs/{env_name}/bin/python -m pip install --force-reinstall -e .; {CONDA_BASE}/envs/{env_name}/bin/python -m pip install -e .[test];{CONDA_BASE}/envs/{env_name}/bin/python -m pip install -e .[testing];{CONDA_BASE}/envs/{env_name}/bin/python -m pip install -e .[tests];{CONDA_BASE}/envs/{env_name}/bin/python -m pip install -e .[dev]',
+            f'{Config.conda_base}/envs/{env_name}/bin/python -m pip install --force-reinstall -e .; {Config.conda_base}/envs/{env_name}/bin/python -m pip install -e .[test];{Config.conda_base}/envs/{env_name}/bin/python -m pip install -e .[testing];{Config.conda_base}/envs/{env_name}/bin/python -m pip install -e .[tests];{Config.conda_base}/envs/{env_name}/bin/python -m pip install -e .[dev]',
             cwd=repo_path,
             capture_output=True,
             text=True,
@@ -78,7 +78,7 @@ def setup_env_swe(instance, env_name, repo_path, logger=None, install_deps=False
             get_environment_yml(instance, env_name, repo_path)
         if os.path.exists(os.path.join(repo_path, "environment.yml")):
             subprocess.run(
-                f'rm -rf {CONDA_BASE}/envs/{env_name}',
+                f'rm -rf {Config.conda_base}/envs/{env_name}',
                 cwd=repo_path,
                 capture_output=True,
                 text=True,
@@ -94,7 +94,7 @@ def setup_env_swe(instance, env_name, repo_path, logger=None, install_deps=False
         elif os.path.exists(os.path.join(repo_path, "requirements.txt")): 
             try:
                 result = subprocess.run(
-                    f'{CONDA_BASE}/envs/{env_name}/bin/python -m pip install -r requirements.txt',
+                    f'{Config.conda_base}/envs/{env_name}/bin/python -m pip install -r requirements.txt',
                     cwd=repo_path,
                     capture_output=True,
                     text=True,
@@ -104,7 +104,7 @@ def setup_env_swe(instance, env_name, repo_path, logger=None, install_deps=False
                 pass
     try:
         result = subprocess.run(
-            f'{CONDA_BASE}/envs/{env_name}/bin/python -m pip install --force-reinstall -e .; {CONDA_BASE}/envs/{env_name}/bin/python -m pip install -e .[test];{CONDA_BASE}/envs/{env_name}/bin/python -m pip install -e .[testing];{CONDA_BASE}/envs/{env_name}/bin/python -m pip install -e .[tests];{CONDA_BASE}/envs/{env_name}/bin/python -m pip install -e .[dev]',
+            f'{Config.conda_base}/envs/{env_name}/bin/python -m pip install --force-reinstall -e .; {Config.conda_base}/envs/{env_name}/bin/python -m pip install -e .[test];{Config.conda_base}/envs/{env_name}/bin/python -m pip install -e .[testing];{Config.conda_base}/envs/{env_name}/bin/python -m pip install -e .[tests];{Config.conda_base}/envs/{env_name}/bin/python -m pip install -e .[dev]',
             cwd=repo_path,
             capture_output=True,
             text=True,
@@ -125,7 +125,7 @@ def setup_logging(output_folder):
 
 def check_conda_env_exists(env_name: str):
     try:
-        result = subprocess.run(f"{CONDA_BIN} env list", text=True, capture_output=True, shell=True)
+        result = subprocess.run(f"{Config.conda_bin} env list", text=True, capture_output=True, shell=True)
         if result.returncode == 0:
             for line in result.stdout.split('\n'):
                 if env_name in line:
@@ -208,7 +208,7 @@ def run_tests(repo, repo_playground, env_name, testcases, correct_only=False, gi
                 write_file(test_path, testcase['content'])
                 result = {}
                 try:
-                    run_code = f'{CONDA_BASE}/envs/{env_name}/bin/python -m pytest --no-header -rA -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors --tb=short --json={repo_path}/report.json {test_path}'
+                    run_code = f'{Config.conda_base}/envs/{env_name}/bin/python -m pytest --no-header -rA -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors --tb=short --json={repo_path}/report.json {test_path}'
                     process = subprocess.run(
                         run_code,
                         cwd=repo_path,
@@ -355,7 +355,7 @@ def init_env(env_name, repo, repo_playground, commit_id, testcases=None, logger=
     else:
         try:
             subprocess.run(
-                f'{CONDA_BIN} create -n {env_name} --clone swedevbase -y',
+                f'{Config.conda_bin} create -n {env_name} --clone swedevbase -y',
                 capture_output=True,
                 text=True,
                 shell=True
@@ -409,7 +409,7 @@ def evaluate_testcase(instance, given_testcase=None, eval_mode=False, logger=Non
 
     repo_id = f'{instance_id}_{repo.replace("/", "_")}_{commit_id}'
     repo_name = repo.split("/")[-1]
-    repo_playground = os.path.join(PLAYGROUND_PATH, repo_id)
+    repo_playground = os.path.join(Config.playground_path, repo_id)
     repo_path = os.path.join(repo_playground, repo_name)
     env_name = f'swedev_{instance_id}'
     clone_repo(repo, repo_playground, logger)
@@ -520,20 +520,20 @@ def process_single_item(item: dict, given_testcase: bool, eval_mode: bool, outpu
                 f.write(json.dumps(item) + "\n")
         except Exception as e:
             pass
-        if os.path.exists(f'{CONDA_BASE}/envs/swedev_{instance_id}'):
-            os.system(f'rm -rf {CONDA_BASE}/envs/swedev_{instance_id}')
+        if os.path.exists(f'{Config.conda_base}/envs/swedev_{instance_id}'):
+            os.system(f'rm -rf {Config.conda_base}/envs/swedev_{instance_id}')
         repo_id = f'{instance_id}_{item["repo"].replace("/", "_")}_{item["base_commit"]}'
-        repo_playground = os.path.join(PLAYGROUND_PATH, repo_id)
+        repo_playground = os.path.join(Config.playground_path, repo_id)
         if os.path.exists(repo_playground):
             os.system(f'rm -rf {repo_playground}')
         return item
 
     except Exception as e:
         traceback.print_exc()
-        if os.path.exists(f'{CONDA_BASE}/envs/swedev_{instance_id}'):
-            os.system(f'rm -rf {CONDA_BASE}/envs/swedev_{instance_id}')
+        if os.path.exists(f'{Config.conda_base}/envs/swedev_{instance_id}'):
+            os.system(f'rm -rf {Config.conda_base}/envs/swedev_{instance_id}')
         repo_id = f'{instance_id}_{item["repo"].replace("/", "_")}_{item["base_commit"]}'
-        repo_playground = os.path.join(PLAYGROUND_PATH, repo_id)
+        repo_playground = os.path.join(Config.playground_path, repo_id)
         if os.path.exists(repo_playground):
             os.system(f'rm -rf {repo_playground}')
         return None

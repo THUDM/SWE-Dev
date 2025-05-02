@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from swebench.collect.build_dataset import main as build_dataset
 from swebench.collect.print_pulls import main as print_pulls
 from tqdm import tqdm
-from src.config import LOCAL_REPO_DIR, GITHUB_TOKENS
+from src.config import Config
 
 load_dotenv()
 
@@ -36,8 +36,8 @@ def split_instances(input_list: list, n: int) -> list:
 
 def clone_repo(repo_name, output_folder):
     global downloaded_repos
-    base_dir = LOCAL_REPO_DIR
-    assert base_dir, "LOCAL_REPO_DIR not configured"
+    base_dir = Config.local_repo_dir
+    assert base_dir, "local_repo_dir not configured"
     
     repo = repo_name.split("/")[-1]
     
@@ -176,9 +176,9 @@ def main(
     if start_index is not None or end_index is not None:
         repos = repos[start_index:end_index]
     repos = reversed(repos)
-    tokens = GITHUB_TOKENS
+    tokens = Config.github_tokens
     if not tokens: 
-        raise Exception("Missing GITHUB_TOKENS in configuration, add to config file or set environment variable")
+        raise Exception("Missing github_tokens in configuration, add to config file or set GITHUB_TOKENS environment variable")
 
     token_iterator = cycle(tokens)  # Create a round-robin iterator for tokens
 

@@ -18,13 +18,37 @@ The main configuration file is located at `conf/config/default.yaml` and contain
 # Basic directory settings
 paths:
   conda_bin: /path/to/conda
+  conda_base: /path/to/conda_dir
   local_repo_dir: /path/to/repos
+  playground: /path/to/playground
 
 # API credentials
 github:
   tokens: []  # Add your GitHub tokens here
 
-# Settings for each pipeline stage
+# OpenAI settings
+openai:
+  base_url: http://api.openai.com/v1
+  base_model: gpt-4o
+  api_key: ${oc.env:OPENAI_API_KEY,sk-test}
+
+# Pipeline stage-specific model settings
+# These settings allow using different models for each stage
+localizer:
+  model: ${openai.base_model}
+  base_url: ${openai.base_url}
+
+description:
+  model: ${openai.base_model}
+  base_url: ${openai.base_url}
+
+testcase:
+  model: ${openai.base_model}
+  base_url: ${openai.base_url}
+  revise_rounds: 0  # Number of rounds to revise testcases
+  debug: false
+
+# Other settings
 data_collection:
   max_repos: 5000
   # ...
@@ -63,22 +87,53 @@ python your_script.py paths.local_repo_dir=/new/path github.tokens=[token1,token
 
 #### Using Configuration in Code
 
+SWE-Dev provides a simple interface for accessing configuration values:
+
+##### Option 1: Using the Config Class (Recommended)
+
+```python
+from src.config import Config
+
+# Access basic configuration
+conda_base = Config.conda_base
+github_tokens = Config.github_tokens
+
+# Access stage-specific settings
+localizer_model = Config.Localizer.model
+description_model = Config.Description.model
+testcase_model = Config.Testcase.model
+revise_rounds = Config.Testcase.revise_rounds
+
+# Dynamic access for any config value
+custom_setting = Config.get("data_collection.max_repos", 5000)
+
+# Validate configuration
+errors = Config.validate()
+if errors:
+    print("Configuration errors:", errors)
+```
+
+##### Option 2: Using get_config_value (Legacy)
+
 ```python
 from src.config import get_config_value
 
 # Access configuration values
 conda_bin = get_config_value('paths.conda_bin')
-max_repos = get_config_value('data_collection.max_repos')
+max_repos = get_config_value('data_collection.max_repos', 5000)  # With default value
 ```
 
-See `src/examples/simple_config_example.py` for a complete usage example.
+#### Environment Variables Fallbacks
+
+Config values can be specified through environment variables as fallbacks. For example:
+- `OPENAI_API_KEY` for OpenAI API access
+- `GITHUB_TOKENS` for GitHub tokens (comma-separated)
+
+Note: The configuration system will prioritize values in the YAML file over environment variables.
 
 ### Step 1: 📊 Data Collection from GitHub
 
-Set up the following environment variables:
-- `CONDA_BIN`: Path to your Conda binary
-- `LOCAL_REPO_DIR`: Directory for storing cloned repositories
-- `GITHUB_TOKENS` Github tokens(comma-separated) for API access.
+Set up your configuration in `conf/config/default.yaml` with GitHub tokens and repository directories before running these commands.
 
 #### Option 1: Collect Top PyPI Repositories
 ```bash
@@ -111,7 +166,7 @@ python -m src.issues.get_tasks_pipeline \
     --max_pulls 1000
 ```
 
-This will clone repositories to the directory specified by `LOCAL_REPO_DIR`.
+This will clone repositories to the directory specified by `local_repo_dir` in your configuration.
 
 If you encounter persistent `404 - Error` messages, manually terminate and combine results:
 ```bash
@@ -143,10 +198,6 @@ conda create -n {env_name} --clone swedevbase
 
 First, generate descriptions:
 ```bash
-CONDA_BASE=/raid/swedev/miniforge3/ \
-PLAYGROUND=/mnt/nvme/playground \
-OPENAI_BASE_URL=http://api.openai.com/v1 \
-OPENAI_BASE_MODEL=gpt-4o \
 python -m src.testcases.get_descriptions.py \
     --loc_file results/dataset_wo_description.jsonl \
     --top_n 5 \
@@ -156,10 +207,6 @@ python -m src.testcases.get_descriptions.py \
 
 Then generate test cases:
 ```bash
-CONDA_BASE=/raid/swedev/miniforge3/ \
-PLAYGROUND=/mnt/nvme/playground \
-OPENAI_BASE_URL=http://api.openai.com/v1 \
-OPENAI_BASE_MODEL=gpt-4o \
 python -m src.testcases.get_testcases \
     --loc_file results/descs-0227/output.jsonl \
     --top_n 5 \
@@ -195,11 +242,6 @@ docker run -d --network host \
   -v /raid:/raid \
   -w /raid/SWE-Dev \
   --restart always \
-  -e LOCAL_REPO_DIR=/raid/repos \
-  -e PLAYGROUND_PATH=/raid/playground \
-  -e CONDA_BIN=/raid/swedev/miniforge3/bin/conda \
-  -e CONDA_BASE=/raid/swedev/miniforge3/ \
-  -e PATH="/raid/swedev/miniforge3/bin:$PATH" \
   testcase-image:latest \
   /raid/swedev/miniforge3/envs/swedev/bin/python -m src.testcases.eval_testcases \
   --dataset /raid/SWE-Dev/results/testcases-0218/output.jsonl \
@@ -207,15 +249,10 @@ docker run -d --network host \
   --num_workers 48
 ```
 
-You should use **absolute path** when add environment variables or mounting directories
+You should use **absolute path** when mounting directories
 
 #### Non-Docker Method
 ```bash
-LOCAL_REPO_DIR=/raid/repos \
-PLAYGROUND_PATH=/raid/playground  \
-CONDA_BIN=/raid/swedev/miniforge3/bin/conda  \
-CONDA_BASE=/raid/swedev/miniforge3/  \
-PATH="/raid/swedev/miniforge3/bin:$PATH" \
 python -m src.testcases.eval_testcases \
     --dataset results/testcases-0218/output.jsonl \
     --output_folder results/evaluation-0218 \

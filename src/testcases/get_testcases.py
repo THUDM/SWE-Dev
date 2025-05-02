@@ -10,9 +10,8 @@ import threading
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict
 
-import jsonlines
 from src.localizer.get_repo_structure import clone_repo
 from src.localizer.localize import get_location
 from src.testcases.eval_testcases import init_env, run_tests, setup_env
@@ -21,9 +20,8 @@ from src.utils.extract_signs import *
 from src.utils.prompts import *
 from src.utils.utils import *
 from tqdm import tqdm
-from src.config import CONDA_BASE, PLAYGROUND_PATH, OPENAI_BASE_MODEL, OPENAI_BASE_URL, get_config_value
+from src.config import Config, get_config_value
 
-DEBUG = False
 REVISE_ROUNDS = 0
 
 def test_formatter(testcase):
@@ -195,7 +193,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
     commit_id = loc["base_commit"]
     hints_text = loc['hints_text']
     repo_id = f'{instance_id}_{repo.replace("/", "_")}_{commit_id}'
-    repo_playground = os.path.join(PLAYGROUND_PATH, repo_id)
+    repo_playground = os.path.join(Config.playground_path, repo_id)
     repo_name = repo.split("/")[-1]
     clone_repo(repo, repo_playground, logger)
     repo_path = f'{repo_playground}/{repo_name}'
@@ -233,8 +231,8 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                     if revise:
                         if with_patch:
                             # Get testcase generation model and base URL from config
-                            testcase_model = get_config_value("testcase.model", OPENAI_BASE_MODEL)
-                            testcase_base_url = get_config_value("testcase.base_url", OPENAI_BASE_URL)
+                            testcase_model = get_config_value("testcase.model", Config.openai_base_model)
+                            testcase_base_url = get_config_value("testcase.base_url", Config.openai_base_url)
                             
                             resp, _ = call(
                                 messages=[{"role": "user", "content": EXTRACT_API_PROMPT.format(history)}],
@@ -255,8 +253,8 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                             prompt = REVISION_BEFORE_PROMPT.format(repo, statement, patch, cur_project_tree, content, test_formatter(testcase))
                     
                     # Get testcase generation model and base URL from config
-                    testcase_model = get_config_value("testcase.model", OPENAI_BASE_MODEL)
-                    testcase_base_url = get_config_value("testcase.base_url", OPENAI_BASE_URL)
+                    testcase_model = get_config_value("testcase.model", Config.openai_base_model)
+                    testcase_base_url = get_config_value("testcase.base_url", Config.openai_base_url)
                     
                     resp, _ = call(
                         messages=[{"role": "user", "content": prompt}],
@@ -287,7 +285,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
         count = 0
         for i, raw_test in enumerate(raw_tests):
             try:
-                generated_envs, generated_tests = parse_testcase(raw_test, f"{CONDA_BASE}/envs/swedev_{instance_id}/bin/pip")
+                generated_envs, generated_tests = parse_testcase(raw_test, f"{Config.conda_base}/envs/swedev_{instance_id}/bin/pip")
                 if not generated_tests:
                     continue
                 for generated_env, generated_test in zip(generated_envs, generated_tests):
@@ -342,7 +340,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                             # history += f"Round {round + 1}:\nTestcase:\n{test_content}\n\nErrors:\n{error_msg}\n"
                             history = f'Error: {error_msg}'
                             raw_test_content = get_raw_test(test, desc=None, revise=True, history=history, with_patch=True)
-                            test_envs, test_contents = parse_testcase(raw_test_content, f"{CONDA_BASE}/envs/swedev_{instance_id}/bin/pip")
+                            test_envs, test_contents = parse_testcase(raw_test_content, f"{Config.conda_base}/envs/swedev_{instance_id}/bin/pip")
                             if test_contents:
                                 tests[i]["content"] = test_contents[0]
                                 tests[i]["env"] = test_envs[0]
@@ -354,14 +352,14 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                     traceback.print_exc()
 
         os.system(f"rm -rf {repo_playground}")
-        os.system(f"rm -rf {CONDA_BASE}/envs/swedev_{instance_id}")
+        os.system(f"rm -rf {Config.conda_base}/envs/swedev_{instance_id}")
         loc['tests'] = tests
         loc['revise_round'] = REVISE_ROUNDS
         return loc
 
     except Exception as e:
         os.system(f"rm -rf {repo_playground}")
-        os.system(f"rm -rf {CONDA_BASE}/envs/swedev_{instance_id}")
+        os.system(f"rm -rf {Config.conda_base}/envs/swedev_{instance_id}")
         logger.error(f"Error processing instance {instance_id}: {str(e)}")
         traceback.print_exc()
         return None

@@ -105,6 +105,51 @@ OPENAI_API_KEY = get_config_value("openai.api_key")
 # For backwards compatibility
 MODEL = OPENAI_BASE_MODEL
 
+# Create a unified Config class for simplified imports
+class Config:
+    """
+    Unified configuration class for easy imports.
+    Usage: from src.config import Config
+    """
+    # Path settings
+    conda_bin = CONDA_BIN
+    conda_base = CONDA_BASE
+    local_repo_dir = LOCAL_REPO_DIR
+    playground_path = PLAYGROUND_PATH
+    
+    # Github settings
+    github_tokens = GITHUB_TOKENS
+    
+    # OpenAI settings
+    openai_base_url = OPENAI_BASE_URL
+    openai_base_model = OPENAI_BASE_MODEL
+    openai_api_key = OPENAI_API_KEY
+    
+    # Pipeline stage settings
+    class Localizer:
+        model = get_config_value("localizer.model", OPENAI_BASE_MODEL)
+        base_url = get_config_value("localizer.base_url", OPENAI_BASE_URL)
+    
+    class Description:
+        model = get_config_value("description.model", OPENAI_BASE_MODEL)
+        base_url = get_config_value("description.base_url", OPENAI_BASE_URL)
+    
+    class Testcase:
+        model = get_config_value("testcase.model", OPENAI_BASE_MODEL)
+        base_url = get_config_value("testcase.base_url", OPENAI_BASE_URL)
+        revise_rounds = get_config_value("testcase.revise_rounds", 0)
+        debug = get_config_value("testcase.debug", False)
+    
+    @staticmethod
+    def get(path: str, default: Any = None) -> Any:
+        """Get any config value by path"""
+        return get_config_value(path, default)
+    
+    @staticmethod
+    def validate() -> List[str]:
+        """Validate configuration"""
+        return validate_config()
+
 # Simple printing function
 def print_config():
     """Print current configuration"""
