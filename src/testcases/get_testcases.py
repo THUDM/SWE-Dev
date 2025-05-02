@@ -5,7 +5,6 @@ import os
 import random
 import re
 import subprocess
-# patch too long
 import sys
 import threading
 import traceback
@@ -22,13 +21,10 @@ from src.utils.extract_signs import *
 from src.utils.prompts import *
 from src.utils.utils import *
 from tqdm import tqdm
-from src.config import CONDA_BASE, PLAYGROUND_PATH, OPENAI_BASE_MODEL, OPENAI_BASE_URL
+from src.config import CONDA_BASE, PLAYGROUND_PATH, OPENAI_BASE_MODEL, OPENAI_BASE_URL, get_config_value
 
 DEBUG = False
 REVISE_ROUNDS = 0
-
-code_model = OPENAI_BASE_MODEL
-code_base_url = OPENAI_BASE_URL
 
 def test_formatter(testcase):
     return TESTCASE_FORMAT.format(testcase["content"], testcase["env"])
@@ -236,14 +232,15 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                     prompt = TESTCASE_GENERATION.format(repo, statement, cur_hints_text, patch, cur_project_tree, desc if desc else "Try to reproduce the results in the problem statement.", content).strip()
                     if revise:
                         if with_patch:
-                            url = code_base_url
+                            # Get testcase generation model and base URL from config
+                            testcase_model = get_config_value("testcase.model", OPENAI_BASE_MODEL)
+                            testcase_base_url = get_config_value("testcase.base_url", OPENAI_BASE_URL)
+                            
                             resp, _ = call(
                                 messages=[{"role": "user", "content": EXTRACT_API_PROMPT.format(history)}],
                                 max_tokens=4096,
-                                model=code_model,
-                                # base_url=code_base_url,
-                                # base_url=code_urls[random.randint(0, len(code_urls) - 1)],
-                                base_url=url,
+                                model=testcase_model,
+                                base_url=testcase_base_url,
                                 logger=logger                             
                             )
                             type, api = parse_api(resp)
@@ -256,12 +253,16 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                             prompt = REVISION_AFTER_PROMPT.format(repo, statement, "No Hints Text Provided", patch, cur_project_tree, content, apis, test_formatter(testcase), history)
                         else:
                             prompt = REVISION_BEFORE_PROMPT.format(repo, statement, patch, cur_project_tree, content, test_formatter(testcase))
-                    url = code_base_url
+                    
+                    # Get testcase generation model and base URL from config
+                    testcase_model = get_config_value("testcase.model", OPENAI_BASE_MODEL)
+                    testcase_base_url = get_config_value("testcase.base_url", OPENAI_BASE_URL)
+                    
                     resp, _ = call(
                         messages=[{"role": "user", "content": prompt}],
                         max_tokens=4096,
-                        model=code_model,
-                        base_url=url,
+                        model=testcase_model,
+                        base_url=testcase_base_url,
                         logger=logger
                     )
                     if resp != "Error":

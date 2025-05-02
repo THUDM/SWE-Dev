@@ -4,9 +4,7 @@ from src.utils.postprocess import extract_code_blocks, extract_locs_for_files
 from src.utils.preprocess import get_full_file_paths_and_classes_and_functions, line_wrap_content, show_project_structure
 from src.utils.utils import call
 import os
-from src.config import MODEL
-
-model = MODEL
+from src.config import OPENAI_BASE_MODEL, OPENAI_BASE_URL, get_config_value
 
 class FileLocalizer(ABC):
     """Abstract class for file localizer"""
@@ -274,12 +272,18 @@ Return just the locations. (Don't forget to wrap your response in triple backtic
                 },
             }
             return [], {"raw_output_loc": ""}, traj
+        
+        # Get localizer model and URL from config
+        localizer_model = get_config_value("localizer.model", OPENAI_BASE_MODEL)
+        localizer_base_url = get_config_value("localizer.base_url", OPENAI_BASE_URL)
+        
         resp, _ = call(
-            model=model,
+            model=localizer_model,
             messages=[{"role": "user", "content": message}],
             temperature=0.0,
             max_tokens=self.max_tokens,
             top_p=1.0,
+            base_url=localizer_base_url,
         )
         traj = {
             "prompt": message,
@@ -346,12 +350,17 @@ Return just the locations. (Don't forget to wrap your response in triple backtic
             }
             return [], {"raw_output_loc": ""}, traj
 
+        # Get localizer model and URL from config
+        localizer_model = get_config_value("localizer.model", OPENAI_BASE_MODEL)
+        localizer_base_url = get_config_value("localizer.base_url", OPENAI_BASE_URL)
+        
         resp, _ = call(
-            model=model, 
+            model=localizer_model, 
             messages=[{"role": "user", "content": message}],
             temperature=0.0,
             max_tokens=self.max_tokens,
             top_p=1.0,
+            base_url=localizer_base_url,
         )
         traj = {
             "prompt": message,

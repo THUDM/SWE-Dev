@@ -29,6 +29,21 @@ code_localization:
   top_n: 5
   num_workers: 128
 
+# Pipeline stage-specific model settings
+# These settings allow using different models for each stage
+# If not specified, fallback to openai.base_model and openai.base_url
+localizer:
+  model: ${openai.base_model}
+  base_url: ${openai.base_url}
+
+description:
+  model: ${openai.base_model}
+  base_url: ${openai.base_url}
+
+testcase:
+  model: ${openai.base_model}
+  base_url: ${openai.base_url}
+
 # Test generation settings
 test_generation:
   num_workers: 30

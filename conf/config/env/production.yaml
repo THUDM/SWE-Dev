@@ -1,8 +1,0 @@
-# 生产环境配置
-
-# 基础目录设置 - 生产环境可能使用不同的路径
-paths:
-  local_repo_dir: /data/repos
-  playground: /data/playground
-
-# 其他特定于生产环境的设置 

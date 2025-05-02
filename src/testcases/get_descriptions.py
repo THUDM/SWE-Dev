@@ -19,7 +19,7 @@ from src.utils.extract_signs import *
 from src.utils.prompts import *
 from src.utils.utils import *
 from tqdm import tqdm
-from src.config import CONDA_BASE, PLAYGROUND_PATH, OPENAI_BASE_MODEL, OPENAI_BASE_URL
+from src.config import CONDA_BASE, PLAYGROUND_PATH, OPENAI_BASE_MODEL, OPENAI_BASE_URL, get_config_value
 
 call_counter = tqdm(desc="API Calls", unit="calls")
 total_counter = tqdm(desc="Progress", unit="items")
@@ -28,7 +28,6 @@ start_time = time.time()
 
 DEBUG = False
 REVISE_ROUNDS = 2
-desc_model = OPENAI_BASE_MODEL
 
 def test_formatter(testcase):
     return TESTCASE_FORMAT.format(testcase["content"], testcase["env"])
@@ -163,36 +162,41 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             call_counter.set_postfix({'RPS': f'{current_rps:.2f}'})
             return call(*args, **kwargs)
 
-        url = OPENAI_BASE_URL
+        description_model = get_config_value("description.model", OPENAI_BASE_MODEL)
+        description_base_url = get_config_value("description.base_url", OPENAI_BASE_URL)
 
         raw_desc, _ = tracked_call(
             messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(repo, statement, patch, hints_text)}],
             max_tokens=2048,
-            model=desc_model,
-            base_url=url
+            model=description_model,
+            base_url=description_base_url,
+            logger=logger                             
         )
         if raw_desc == "Error":
             print("Too long when generating raw desc")
             raw_desc, _ = tracked_call(
                 messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(repo, statement, patch, "No Hints Text Provided")}],
                 max_tokens=2048,
-                model=desc_model,
-                base_url=url
+                model=description_model,
+                base_url=description_base_url,
+                logger=logger
             )     
         
         desc, _ = tracked_call(
             messages=[{"role": "user", "content": MAKE_GHERKIN_TEST.format(repo, statement, patch, hints_text, raw_desc)}],
             max_tokens=2048,
-            model=desc_model,
-            base_url=url
+            model=description_model,
+            base_url=description_base_url,
+            logger=logger
         )
         if desc == "Error":
             print("Too long when generating desc")
             desc, _ = tracked_call(
                 messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(repo, statement, patch, "No Hints Text Provided")}],
                 max_tokens=2048,
-                model=desc_model,
-                base_url=url
+                model=description_model,
+                base_url=description_base_url,
+                logger=logger
             )
         pattern = r'```(?:gherkin\n|\n)(.*?)\n```'
         descs = re.findall(pattern, desc, re.DOTALL)
@@ -206,7 +210,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             "hints_text": loc["hints_text"],
             "base_commit": loc["base_commit"],
             "descs": descs,
-            "model": desc_model
+            "model": description_model
         }
         
     except Exception as e:
@@ -224,7 +228,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             "hints_text": loc["hints_text"],
             "base_commit": loc["base_commit"],
             "descs": [],
-            "model": desc_model
+            "model": get_config_value("description.model", OPENAI_BASE_MODEL)
         }
         
 def make_testcases(args, logger: logging.Logger):

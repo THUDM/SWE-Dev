@@ -100,6 +100,10 @@ if not GITHUB_TOKENS and os.environ.get("GITHUB_TOKENS"):
     GITHUB_TOKENS = os.environ.get("GITHUB_TOKENS", "").split(",")
 OPENAI_BASE_URL = get_config_value("openai.base_url")
 OPENAI_BASE_MODEL = get_config_value("openai.base_model")
+OPENAI_API_KEY = get_config_value("openai.api_key")
+
+# For backwards compatibility
+MODEL = OPENAI_BASE_MODEL
 
 # Simple printing function
 def print_config():
