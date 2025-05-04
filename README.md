@@ -130,10 +130,13 @@ max_repos = get_config_value('data_collection.max_repos', 5000)  # With default 
 Set up your configuration in `conf/config/default.yaml` with GitHub tokens and repository directories before running these commands.
 
 #### Option 1: Collect Top PyPI Repositories
+
+> You need to install chrome driver first. In ubuntu, you can install simply by `apt install chromium-chromedriver`
+
 ```bash
 python -m swedev.crawl.get_top_pypi \
-    --max_repos 5000 \
-    --output_folder results/issues/top_pypi \
+    --max_repos 100 \
+    --output_folder results/packages \
     --num_workers 8 \
     --start_at 0
 ```

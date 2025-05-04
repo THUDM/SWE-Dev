@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import random
+import time
 from multiprocessing import Pool
 
 from bs4 import BeautifulSoup
@@ -15,12 +16,11 @@ from swedev.config import Config
 if not Config.github_tokens:
     msg = "GitHub tokens not configured. Please configure github_tokens in your config file or set the GITHUB_TOKENS environment variable."
     raise ValueError(msg)
-
 apis = [GhApi(token=gh_token) for gh_token in Config.github_tokens]
-print("GITHUB_TOKENS:", Config.github_tokens)
+print("GitHub tokens:", Config.github_tokens)
 
 def get_api():
-    return random.sample(apis, 1)[0]
+    return random.choice(apis)
 
 def setup_driver():
     """Setup and return a Chrome webdriver"""
@@ -29,6 +29,9 @@ def setup_driver():
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--no-sandbox')
+    options.add_argument('--enable-javascript')
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36')
     return webdriver.Chrome(options=options)
 
 def process_package(args):
@@ -42,33 +45,56 @@ def process_package(args):
 
         package_github = None
         driver.get(package_url)
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        for link in soup.find_all("a", class_="vertical-tabs__tab--with-icon"):
-            found = False
-            for x in ["Source", "Code", "Homepage"]:
-                if (
-                    x.lower() in link.get_text().lower()
-                    and "github" in link["href"].lower()
-                ):
-                    package_github = link["href"]
-                    found = True
+        time.sleep(2)  # Wait for the page to load
+        
+        try:
+            # Try to find GitHub link using JavaScript
+            github_link = driver.execute_script("""
+                const links = Array.from(document.querySelectorAll('a.vertical-tabs__tab--with-icon'));
+                for (const link of links) {
+                    const text = link.textContent.toLowerCase();
+                    const href = link.href.toLowerCase();
+                    if ((text.includes('source') || text.includes('code') || text.includes('homepage')) && href.includes('github')) {
+                        return link.href;
+                    }
+                }
+                return null;
+            """)
+            
+            if github_link:
+                package_github = github_link
+        except:
+            # Fallback to BeautifulSoup if JavaScript execution fails
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+            for link in soup.find_all("a", class_="vertical-tabs__tab--with-icon"):
+                found = False
+                for x in ["source", "code", "homepage"]:
+                    if (
+                        x in link.get_text().lower()
+                        and "github" in link["href"].lower()
+                    ):
+                        package_github = link["href"]
+                        found = True
+                        break
+                if found:
                     break
-            if found:
-                break
 
-        # Get stars and pulls from github API
         stars_count, pulls_count = None, None
         if package_github is not None:
-            repo_parts = package_github.split("/")[-2:]
-            owner, name = repo_parts[0], repo_parts[1]
-
             try:
-                repo = get_api().repos.get(owner, name)
-                stars_count = int(repo["stargazers_count"])
-                issues = get_api().issues.list_for_repo(owner, name)
-                pulls_count = int(issues[0]["number"])
-            except:
-                pass
+                # Extract owner and repo name
+                if "github.com" in package_github:
+                    repo_parts = package_github.split("github.com/")[-1].split("/")
+                    if len(repo_parts) >= 2:
+                        owner, name = repo_parts[0], repo_parts[1].split("#")[0].split("?")[0]
+                        
+                        repo = get_api().repos.get(owner, name)
+                        stars_count = int(repo["stargazers_count"])
+                        pulls = get_api().pulls.list(owner, name, state="all", per_page=1)
+                        if pulls:
+                            pulls_count = pulls[0]["number"]
+            except Exception as e:
+                print(f"Error getting GitHub stats for {package_name}: {str(e)}")
 
         result = {
             "rank": idx,
@@ -82,7 +108,7 @@ def process_package(args):
         return result
 
     except Exception as e:
-        print(f"Error processing package {package_name}: {str(e)}")
+        print(f"Error processing package {title}: {str(e)}")
         return None
     
     finally:
@@ -98,9 +124,11 @@ def get_package_stats(data_tasks, output_file, num_workers, start_at=0):
         num_workers (int): Number of worker processes
         start_at (int): Index to start processing from
     """
+    print(f"Processing {len(data_tasks)} packages")
+    
     processed_urls = set()
     if os.path.exists(output_file):
-        with open(output_file) as f:
+        with open(output_file, "r") as f:
             for line in f:
                 try:
                     data = json.loads(line)
@@ -110,7 +138,7 @@ def get_package_stats(data_tasks, output_file, num_workers, start_at=0):
 
     tasks = [
         (idx, chunk["title"], chunk["href"]) 
-        for idx, chunk in enumerate(data_tasks[start_at:], start_at)  # Start from start_at index
+        for idx, chunk in enumerate(data_tasks[start_at:], start_at)
         if chunk["href"] not in processed_urls
     ]
 
@@ -119,52 +147,110 @@ def get_package_stats(data_tasks, output_file, num_workers, start_at=0):
         return
 
     with Pool(processes=num_workers) as pool:
-        results = []
         for result in tqdm(
             pool.imap_unordered(process_package, tasks),
             total=len(tasks),
             desc="Processing packages"
         ):
             if result:
-                results.append(result)
-        
-        with open(output_file, "a") as f:
-            for res in results:
-                print(json.dumps(res), file=f, flush=True)
+                with open(output_file, "a") as f:
+                    print(json.dumps(result), file=f, flush=True)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--max_repos", help="Maximum number of repos to get", type=int, default=5000)
-    parser.add_argument("--output_folder", type=str, default="results/issues")
+    parser.add_argument("--output_folder", type=str, default="results/packages")
     parser.add_argument("--num_workers", type=int, default=4, help="Number of worker processes")
     parser.add_argument("--start_at", type=int, default=0, help="Index to start processing packages from")
     args = parser.parse_args()
 
-    options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--no-sandbox')
-    
-    print(f"Now getting top {args.max_repos} pypi packages")
     url_top_pypi = "https://hugovk.github.io/top-pypi-packages/"
-    driver = webdriver.Chrome(options=options)
+    driver = setup_driver()
     
     try:
-        print("Chrome start successfully!")
+        print("Chrome started successfully!")
         driver.get(url_top_pypi)
-        button = driver.find_element(By.CSS_SELECTOR, 'button[ng-click="show(8000)"]')
-        button.click()
+        
+        # Wait for page to fully load
+        time.sleep(5)
+        
+        try:
+            # Use JavaScript to click the button
+            driver.execute_script("""
+                const buttons = Array.from(document.querySelectorAll('button'));
+                for (const button of buttons) {
+                    if (button.textContent.includes('15000')) {
+                        button.click();
+                        return true;
+                    }
+                }
+                return false;
+            """)
+            print("Clicked button via JavaScript")
+        except:
+            # Fallback to selenium if JavaScript fails
+            try:
+                button = driver.find_element(By.CSS_SELECTOR, 'button[ng-click="show(15000)"]')
+                button.click()
+                print("Clicked button via Selenium")
+            except:
+                print("Failed to click button, trying to find other versions")
+                buttons = driver.find_elements(By.TAG_NAME, 'button')
+                for btn in buttons:
+                    if "15000" in btn.text:
+                        btn.click()
+                        print("Found and clicked alternative button")
+                        break
+        
+        # Wait for the content to load (longer wait time)
+        time.sleep(10)
 
         print("Getting package stats")
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        package_list = soup.find("div", {"class": "list"})
-        packages = package_list.find_all("a", class_="ng-scope")
         
-        package_data = [
-            {"title": pkg.get_text(), "href": pkg["href"]} 
-            for pkg in packages
-        ]
+        package_data = driver.execute_script("""
+            const packages = Array.from(document.querySelectorAll('div.list a.ng-scope'));
+            return packages.map(pkg => {
+                const fullText = pkg.textContent.trim();
+                // Extract just the package name, removing rank and download numbers
+                const packageName = fullText.split('\\n')[1].trim();
+                return {
+                    title: packageName,
+                    href: pkg.href
+                };
+            });
+        """)
+        
+        if not package_data:
+            print("JavaScript extraction failed, using BeautifulSoup...")
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+            package_list = soup.find("div", {"class": "list"})
+            
+            if not package_list:
+                print("BeautifulSoup couldn't find package list, using WebDriver directly...")
+                packages = driver.find_elements(By.CSS_SELECTOR, 'div.list a.ng-scope')
+                package_data = []
+                for pkg in packages:
+                    full_text = pkg.text.strip()
+                    # Extract just the package name, removing rank and download numbers
+                    parts = full_text.split('\n')
+                    if len(parts) > 1:
+                        package_name = parts[1].strip()
+                        package_data.append({"title": package_name, "href": pkg.get_attribute("href")})
+            else:
+                packages = package_list.find_all("a", class_="ng-scope")
+                package_data = []
+                for pkg in packages:
+                    full_text = pkg.get_text().strip()
+                    # Extract just the package name, removing rank and download numbers
+                    parts = full_text.split('\n')
+                    if len(parts) > 1:
+                        package_name = parts[1].strip() 
+                        package_data.append({"title": package_name, "href": pkg["href"]})
+                        
+        print(f"Found {len(package_data)} packages, will use top {args.max_repos} packages!")
+        
+        package_data = package_data[:args.max_repos]
+        
         print(f"Will save to {args.output_folder}")
         if not os.path.exists(args.output_folder):
             os.makedirs(args.output_folder)
@@ -176,7 +262,7 @@ def main():
             args.num_workers,
             start_at=args.start_at
         )
-        
+
     finally:
         driver.quit()
 
