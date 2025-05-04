@@ -1,60 +1,25 @@
 # SWE-Dev Configuration
 
-# Basic directory settings
 paths:
   conda_bin: /raid/swedev/miniforge3/bin/conda
   conda_base: /raid/swedev/miniforge3/
   local_repo_dir: /raid/repos
   playground: /raid/playground
 
-# API credentials
 github:
-  tokens: []  # Add your GitHub tokens here
+  tokens: ghp_1,ghp_2 # split by comma
   api_url: https://api.github.com
-
-# OpenAI settings
-openai:
-  base_url: http://api.openai.com/v1
-  base_model: gpt-4o
-  api_key: ${oc.env:OPENAI_API_KEY,sk-test}
-
-# Data collection settings
-data_collection:
-  max_repos: 5000
-  max_pulls: 1000
-  num_workers: 8
-
-# Code localization settings
-code_localization:
-  top_n: 5
-  num_workers: 128
-
+  
 # Pipeline stage-specific model settings
 # These settings allow using different models for each stage
 # If not specified, fallback to openai.base_model and openai.base_url
 description:
   model: ${openai.base_model}
   base_url: ${openai.base_url}
+  max_tokens: ${openai.max_tokens}
 
 testcase:
   model: ${openai.base_model}
   base_url: ${openai.base_url}
   revise_rounds: 0  # Number of rounds to revise testcases
-  debug: false
-
-# Test generation settings
-test_generation:
-  num_workers: 30
-  model: ${openai.base_model}
-
-# Test evaluation settings
-test_evaluation:
-  num_workers: 32
-  docker:
-    enabled: false
-    image: testcase-image:latest
-
-# Dataset creation settings
-dataset_creation:
-  output_folder: results/swedata
-  dataset_type: openhands 
+  max_tokens: ${openai.max_tokens}

@@ -2,3 +2,15 @@
 defaults:
   - config/default
   - _self_
+
+description:
+  model: gpt-4o
+  base_url: https://api.openai.com/v1
+  max_tokens: 16384
+
+testcase:
+  model: gpt-4o
+  base_url: https://api.openai.com/v1
+  max_tokens: 16384
+
+

@@ -187,8 +187,8 @@ def call(
     model: str = None,
     base_url: str = None,
     messages: list[dict] = [],
-    temperature: float = 0.5,
-    max_tokens: int = 200,
+    temperature: float = 1.0,
+    max_tokens: int = 2048,
     top_p: float = 0.95,
     tools: list[dict] | None = None,
     stop: list[str] = ['<|user|>'],
@@ -198,7 +198,7 @@ def call(
     **kwargs
 ):
     if len(messages[0]['content']) > 200000:
-        return "Error", {}
+        return "Error"
     api_key = Config.openai_api_key
     if not model:
         model = Config.openai_base_model
@@ -215,6 +215,9 @@ def call(
             'temperature': temperature,
             'stream': False,
             'stop': stop,
+            'max_tokens': max_tokens,
+            'top_p': top_p,
+            'tools': tools,
         }
         for retry in range(3):
             if retry > 1:
@@ -225,14 +228,12 @@ def call(
                 if not 'choices' in response.keys():
                     logger and logger.critical(response)
                 content = response["choices"][0]["message"]["content"]
-
-                metrics = {} # dummy metrics
-                return content, metrics
+                return content
             except Exception as e:
                 logger and logger.critical(traceback.print_exc())
                 time.sleep(5)
-        return "Error", {}
-    else:
+        return "Error"
+    else: # TGI and other platforms
         raise NotImplementedError
     
 def combine_by_instance_id(data):

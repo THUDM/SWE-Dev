@@ -15,8 +15,6 @@ from swedev.utils.utils import (extract_test_patch, get_environment_yml,
 from tqdm import tqdm
 from swedev.config import Config
 
-DEBUG = False
-
 def is_test_folder_empty(folder_path):
     try:
         result = subprocess.run(

@@ -38,8 +38,6 @@ python your_script.py paths.local_repo_dir=/new/path github.tokens=[token1,token
 
 #### Using Configuration in Code
 
-##### Option 1: Using the Config Class (Recommended)
-
 ```python
 from swedev.config import Config
 
@@ -52,24 +50,6 @@ localizer_model = Config.Localizer.model
 description_model = Config.Description.model
 testcase_model = Config.Testcase.model
 revise_rounds = Config.Testcase.revise_rounds
-
-# Dynamic access for any config value
-custom_setting = Config.get("data_collection.max_repos", 5000)
-
-# Validate configuration
-errors = Config.validate()
-if errors:
-    print("Configuration errors:", errors)
-```
-
-##### Option 2: Using get_config_value (Legacy)
-
-```python
-from swedev.config import get_config_value
-
-# Access configuration values
-conda_bin = get_config_value('paths.conda_bin')
-max_repos = get_config_value('data_collection.max_repos', 5000)  # With default value
 ```
 
 #### Environment Variables Fallbacks
@@ -131,8 +111,8 @@ conda create -n {env_name} --clone swedevbase # For later usage
 
 First, generate descriptions:
 ```bash
-python -m swedev.testcases.get_descriptions.py \
-    --loc_file results/dataset_wo_description.jsonl \
+python -m swedev.testcases.get_descriptions \
+    --dataset_file results/dataset_wo_description.jsonl \
     --top_n 5 \
     --output_folder results/descriptions \
     --num_workers 100
@@ -203,7 +183,7 @@ python -m swedev.testcases.eval_testcases \
 ### Step 5: 📦 Create Final Dataset
 
 ```bash
-python src/testcases/swebench_formatter.py \
+python swebench.utils.formatter \
     --dataset results/trajectory/qwen-45round-v0227.jsonl \
     --output_folder results/swedata \
     --output_name swe-qwen-45round-v0227.jsonl \

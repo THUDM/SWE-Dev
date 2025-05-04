@@ -14,7 +14,6 @@ from typing import Dict
 
 from swedev.testcases.eval_testcases import init_env, run_tests, setup_env
 from swedev.utils.localize import get_location
-from swedev.utils.error_handler import call
 from swedev.utils.extract_signs import api_formatter, find_top_similar_apis, extract_classes_and_functions_from_directory, generate_signatures
 from swedev.utils.prompts import REVISION_AFTER_PROMPT, REVISION_BEFORE_PROMPT, TESTCASE_FORMAT, TESTCASE_GENERATION, EXTRACT_API_PROMPT
 from swedev.utils.utils import parse_api, clone_repo
@@ -233,7 +232,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                             testcase_model = get_config_value("testcase.model", Config.openai_base_model)
                             testcase_base_url = get_config_value("testcase.base_url", Config.openai_base_url)
                             
-                            resp, _ = call(
+                            resp = call(
                                 messages=[{"role": "user", "content": EXTRACT_API_PROMPT.format(history)}],
                                 max_tokens=4096,
                                 model=testcase_model,
@@ -255,7 +254,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                     testcase_model = get_config_value("testcase.model", Config.openai_base_model)
                     testcase_base_url = get_config_value("testcase.base_url", Config.openai_base_url)
                     
-                    resp, _ = call(
+                    resp = call(
                         messages=[{"role": "user", "content": prompt}],
                         max_tokens=4096,
                         model=testcase_model,
@@ -437,5 +436,4 @@ def main():
     make_testcases(args, logger)
 
 if __name__ == "__main__":
-    # test_parsing(); exit()
     main()

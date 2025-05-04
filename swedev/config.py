@@ -106,8 +106,7 @@ GITHUB_API_URL = get_config_value("github.api_url", "https://api.github.com")
 OPENAI_BASE_URL = get_config_value("openai.base_url")
 OPENAI_BASE_MODEL = get_config_value("openai.base_model")
 OPENAI_API_KEY = get_config_value("openai.api_key")
-
-# For backwards compatibility
+OPENAI_MAX_TOKENS = get_config_value("openai.max_tokens", 16384)
 MODEL = OPENAI_BASE_MODEL
 
 # Create a unified Config class for simplified imports
@@ -131,17 +130,16 @@ class Config:
     openai_base_model = OPENAI_BASE_MODEL
     openai_api_key = OPENAI_API_KEY
     
-    # Pipeline stage settings
     class Description:
         model = get_config_value("description.model", OPENAI_BASE_MODEL)
         base_url = get_config_value("description.base_url", OPENAI_BASE_URL)
+        max_tokens = get_config_value("description.max_tokens", 16384)
     
     class Testcase:
         model = get_config_value("testcase.model", OPENAI_BASE_MODEL)
         base_url = get_config_value("testcase.base_url", OPENAI_BASE_URL)
         revise_rounds = get_config_value("testcase.revise_rounds", 0)
-        debug = get_config_value("testcase.debug", False)
-    
+        max_tokens = get_config_value("testcase.max_tokens", 16384)
     @staticmethod
     def get(path: str, default: Any = None) -> Any:
         """Get any config value by path"""
