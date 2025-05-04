@@ -136,6 +136,7 @@ def get_location(data):
     # localize in file patches
     patch = data["patch"]
     file_ranges = parse_patch(patch)
+    print(file_ranges)
     repo_name = data["repo"]
     commit_id = data["base_commit"]
     repo_id = f'{instance_id}_{repo_name.replace("/", "_")}_{commit_id}'
@@ -161,16 +162,13 @@ def get_location(data):
                     "code": code_block
                 })
         except Exception as e:
-            logging.critical(f"Error: {e}")
+            logging.critical(f"Error localizing patch: {e}")
             pass
     project_tree = get_tree_string(repo_playground).strip()
     return {
         "patch_blocks": patch_blocks,
         "project_tree": project_tree
     }
-
-def repo_to_top_folder(repo_name):
-    return repo_name.split('/')[-1]
 
 def create_structure(directory_path):
     """Create the structure of the repository directory by parsing Python files.

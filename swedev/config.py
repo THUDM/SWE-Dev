@@ -101,7 +101,6 @@ PLAYGROUND_PATH = get_config_value("paths.playground")
 GITHUB_TOKENS = get_config_value("github.tokens", [])
 if not GITHUB_TOKENS and os.environ.get("GITHUB_TOKENS"):
     GITHUB_TOKENS = os.environ.get("GITHUB_TOKENS", "").split(",")
-GITHUB_API_URL = get_config_value("github.api_url", "https://api.github.com")
 OPENAI_BASE_URL = get_config_value("openai.base_url")
 OPENAI_BASE_MODEL = get_config_value("openai.base_model")
 OPENAI_API_KEY = get_config_value("openai.api_key")
@@ -122,7 +121,6 @@ class Config:
     
     # Github settings
     github_tokens = GITHUB_TOKENS
-    github_api_url = GITHUB_API_URL
     
     # OpenAI settings
     openai_base_url = OPENAI_BASE_URL

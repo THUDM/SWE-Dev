@@ -14,9 +14,9 @@ from typing import Dict
 
 from swedev.testcases.eval_testcases import init_env, run_tests, setup_env
 from swedev.utils.localize import get_location
-from swedev.utils.extract_signs import api_formatter, find_top_similar_apis, extract_classes_and_functions_from_directory, generate_signatures
+from swedev.utils.extract_signs import api_formatter, find_top_similar_apis, extract_classes_and_functions_from_directory, generate_signatures, parse_api
 from swedev.utils.prompts import REVISION_AFTER_PROMPT, REVISION_BEFORE_PROMPT, TESTCASE_FORMAT, TESTCASE_GENERATION, EXTRACT_API_PROMPT
-from swedev.utils.utils import parse_api, clone_repo
+from swedev.utils.utils import clone_repo, call
 from tqdm import tqdm
 from swedev.config import Config, get_config_value
 
@@ -180,27 +180,29 @@ def parse_testcase(text, pip_path):
         envs[i] = ret
     return envs, testcases
 
-def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging.Logger) -> Dict:
+def process_single_instance(data: Dict, args: argparse.Namespace, logger: logging.Logger) -> Dict:
     """Process a single test instance"""
     file_count = args.top_n
-    instance_id = loc["instance_id"]
-    repo = loc["repo"]
-    statement = loc["problem_statement"]
-    patch = loc["patch"]
+    instance_id = data["instance_id"]
+    repo = data["repo"]
+    statement = data["problem_statement"]
+    patch = data["patch"]
     env_name = f'swedev_{instance_id}'
-    commit_id = loc["base_commit"]
-    hints_text = loc['hints_text']
+    commit_id = data["base_commit"]
+    hints_text = data['hints_text']
     repo_id = f'{instance_id}_{repo.replace("/", "_")}_{commit_id}'
     repo_playground = os.path.join(Config.playground_path, repo_id)
     repo_name = repo.split("/")[-1]
-    clone_repo(repo, repo_playground, logger)
+    if not os.path.exists(repo_playground):
+        os.makedirs(repo_playground, exist_ok=True)
+    clone_repo(repo, repo_playground)
     repo_path = f'{repo_playground}/{repo_name}'
 
-    if "project_tree" in loc.keys() and "patch_blocks" in loc.keys():
-        project_tree = loc['project_tree']
-        patch_blocks = loc["patch_blocks"]
+    if "project_tree" in data.keys() and "patch_blocks" in data.keys():
+        project_tree = data['project_tree']
+        patch_blocks = data["patch_blocks"]
     else:
-        location = get_location(loc)
+        location = get_location(data)
         project_tree, patch_blocks = location["project_tree"], location["patch_blocks"]
         if not patch_blocks:
             return None
@@ -271,7 +273,7 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
             return None
 
         raw_tests, tests = [], []
-        descs = loc["descs"]
+        descs = data["descs"]
         for desc in descs:
             resp = get_raw_test(testcase=None, desc=desc, revise=False)
             if resp:
@@ -302,7 +304,6 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
         logger.info(f"Finishing raw test generation. Raw test length: {len(raw_tests)}, Parsed test length: {len(tests)}")
 
         if REVISE_ROUNDS != 0:
-            logger.critical("start initing")
             init_env(env_name, repo, repo_playground, commit_id, testcases=None, logger=logger)
             status = True
             # apply patch
@@ -326,7 +327,6 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
                         test_content = test["content"]
                         test_env = test["env"]
                         for round in range(REVISE_ROUNDS):
-                            logger.critical(f"revise round: {round}")
                             setup_env(env_name, repo_path, [test], logger)
                             result = run_tests(repo, repo_playground, env_name, [test], correct_only=False, given_testcase=False, logger=logger, build_phase=True)[0]
                             if result["status"] == "success":
@@ -351,9 +351,9 @@ def process_single_instance(loc: Dict, args: argparse.Namespace, logger: logging
 
         os.system(f"rm -rf {repo_playground}")
         os.system(f"rm -rf {Config.conda_base}/envs/swedev_{instance_id}")
-        loc['tests'] = tests
-        loc['revise_round'] = REVISE_ROUNDS
-        return loc
+        data['tests'] = tests
+        data['revise_round'] = REVISE_ROUNDS
+        return data
 
     except Exception as e:
         os.system(f"rm -rf {repo_playground}")
@@ -372,7 +372,7 @@ def make_testcases(args, logger: logging.Logger):
     with open(f"{args.output_folder}/args.json", "w") as f:
         json.dump(vars(args), f, indent=4)
 
-    with open(args.loc_file, 'r', encoding='latin-1') as f:
+    with open(args.dataset_file, 'r', encoding='latin-1') as f:
         locs = [json.loads(d) for d in f.readlines()]    
         
     random.shuffle(locs)
@@ -394,13 +394,13 @@ def make_testcases(args, logger: logging.Logger):
     else:
         prev_o_ids = []
 
-    locs = [loc for loc in locs if loc["instance_id"] not in prev_o_ids]
+    locs = [data for data in locs if data["instance_id"] not in prev_o_ids]
     print(f"Remaining {len(locs)} instances")
     results = []
     result_lock = threading.Lock()
 
-    def process_and_save(loc, output_file, logger):
-        result = process_single_instance(loc, args, logger)
+    def process_and_save(data, output_file, logger):
+        result = process_single_instance(data, args, logger)
         if result:
             with result_lock:
                 if result["tests"]:
@@ -408,21 +408,15 @@ def make_testcases(args, logger: logging.Logger):
                     with open(output_file, "a") as f:
                         f.write(f'{json.dumps(result)}\n')
                 else:
-                    print(f"Skipping instance {loc['instance_id']} due to no tests, {result['tests']}")
+                    print(f"Skipping instance {data['instance_id']} due to no tests, {result['tests']}")
                     
     with ThreadPoolExecutor(max_workers=args.num_workers) as executor:
-        list(tqdm(executor.map(lambda loc: process_and_save(loc, args.output_file, logger), locs), total=len(locs)))
+        list(tqdm(executor.map(lambda data: process_and_save(data, args.output_file, logger), locs), total=len(locs)))
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--loc_file", type=str, required=True)
+    parser.add_argument("--dataset_file", type=str, required=True)
     parser.add_argument("--top_n", type=int, default=1)
-    parser.add_argument(
-        "--select_id",
-        type=int,
-        default=-1,
-        help="Index the selected samples during post-processing.",
-    )
     parser.add_argument("--output_folder", type=str, required=True)
     parser.add_argument("--num_workers", type=int, default=4, help="Number of parallel workers")
 

@@ -1,14 +1,13 @@
 # SWE-Dev Configuration
 
 paths:
-  conda_bin: /raid/swedev/miniforge3/bin/conda
-  conda_base: /raid/swedev/miniforge3/
-  local_repo_dir: /raid/repos
-  playground: /raid/playground
+  conda_bin: /path/to/conda/bin/conda
+  conda_base: /path/to/conda/base
+  local_repo_dir: /path/to/local/repo/dir
+  playground: /path/to/playground
 
 github:
   tokens: ghp_1,ghp_2 # split by comma
-  api_url: https://api.github.com
   
 # Pipeline stage-specific model settings
 # These settings allow using different models for each stage

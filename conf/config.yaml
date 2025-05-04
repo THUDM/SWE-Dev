@@ -3,6 +3,15 @@ defaults:
   - config/default
   - _self_
 
+paths:
+  conda_bin: /raid/haoran/miniforge3/bin/conda
+  conda_base: /raid/haoran/miniforge3/
+  local_repo_dir: /raid/repos
+  playground: /raid/playground
+
+github:
+  tokens: ghp_1,ghp_2
+
 description:
   model: gpt-4o
   api_key: sk-swedev

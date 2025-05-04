@@ -63,7 +63,6 @@ def setup_env(env_name, repo_path, testcases, logger=None):
             text=True,
             shell=True
         )
-        # logger.critical(f'Dependency result: {result}')
     except Exception as e:
         if logger:
             logger.error(f"Error add dependencies: {str(e)}")
@@ -107,7 +106,6 @@ def setup_env_swe(instance, env_name, repo_path, logger=None, install_deps=False
             text=True,
             shell=True
         )
-        # logger.critical(f'Dependency result: {result}')
     except Exception as e:
         if logger:
             logger.error(f"Error add dependencies: {str(e)}")

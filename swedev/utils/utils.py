@@ -14,6 +14,9 @@ from swedev.config import Config
 
 SWE_BENCH_URL_RAW = "https://raw.githubusercontent.com/"
 
+def repo_to_top_folder(repo_name):
+    return repo_name.split('/')[-1]
+
 def get_environment_yml(
         instance: dict,
         env_name: str,
@@ -227,12 +230,11 @@ def call(
                 response = response.json()
                 if not 'choices' in response.keys():
                     logger and logger.critical(response)
-                print(response)
                 content = response["choices"][0]["message"]["content"]
                 return content
             except Exception as e:
-                logger and logger.critical(traceback.print_exc())
-                time.sleep(5)
+                logger.info(f"Error when calling api: {e}")
+                time.sleep(2)
         return "Error"
     else: # TGI and other platforms
         raise NotImplementedError

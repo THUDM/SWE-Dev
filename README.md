@@ -122,10 +122,10 @@ python -m swedev.testcases.get_descriptions \
 Then generate test cases:
 ```bash
 python -m swedev.testcases.get_testcases \
-    --loc_file results/descs-0227/output.jsonl \
+    --dataset_file results/descriptions/output.jsonl \
     --top_n 5 \
-    --output_folder results/testcases-0227/ \
-    --num_workers 30
+    --output_folder results/testcases/ \
+    --num_workers 4
 ```
 
 ### Step 3: 🧪 Evaluate Test Cases
