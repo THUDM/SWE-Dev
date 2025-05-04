@@ -109,13 +109,14 @@ conda create -n swedevbase python=3.11 -y
 conda create -n {env_name} --clone swedevbase # For later usage
 ```
 
+Before the generation pipeline, you should config your api info at `conf/config.yaml`
+
 First, generate descriptions:
 ```bash
 python -m swedev.testcases.get_descriptions \
-    --dataset_file results/dataset_wo_description.jsonl \
-    --top_n 5 \
+    --dataset_file results/issues/all_tasks.jsonl \
     --output_folder results/descriptions \
-    --num_workers 100
+    --num_workers 16
 ```
 
 Then generate test cases:

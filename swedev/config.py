@@ -4,8 +4,7 @@ Simple configuration module for SWE-Dev based on Hydra.
 
 import os
 import sys
-from typing import Any, Dict, List
-from pathlib import Path
+from typing import Any, List
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -133,6 +132,7 @@ class Config:
     class Description:
         model = get_config_value("description.model", OPENAI_BASE_MODEL)
         base_url = get_config_value("description.base_url", OPENAI_BASE_URL)
+        api_key = get_config_value("description.api_key", OPENAI_API_KEY)
         max_tokens = get_config_value("description.max_tokens", 16384)
     
     class Testcase:
@@ -140,6 +140,8 @@ class Config:
         base_url = get_config_value("testcase.base_url", OPENAI_BASE_URL)
         revise_rounds = get_config_value("testcase.revise_rounds", 0)
         max_tokens = get_config_value("testcase.max_tokens", 16384)
+        api_key = get_config_value("testcase.api_key", OPENAI_API_KEY)
+    
     @staticmethod
     def get(path: str, default: Any = None) -> Any:
         """Get any config value by path"""
