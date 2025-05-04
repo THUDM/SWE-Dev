@@ -17,23 +17,21 @@ call_counter = tqdm(desc="API Calls", unit="calls")
 total_counter = tqdm(desc="Progress", unit="items")
 saved_counter = tqdm(desc="Saved", unit="items")
 
-# Simple RPS tracking variables
 request_count = 0
 start_time = time.time()
 rps_lock = threading.Lock()
 
-def process_instance(instance, function_id, model, base_url, logger, writer):
+def process_instance(instance, model, base_url, max_tokens, logger, writer):
     """Process a single test instance to generate description and save it"""
     global request_count
     
-    # Track RPS
     with rps_lock:
         request_count += 1
     call_counter.update(1)
     
     result = call(
         messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], instance["hints_text"])}],
-        max_tokens=2048,
+        max_tokens=max_tokens,
         model=model,
         base_url=base_url,
         logger=logger
@@ -42,7 +40,7 @@ def process_instance(instance, function_id, model, base_url, logger, writer):
         print("Too long when generating raw desc")
         result = call(
             messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], "No Hints Text Provided")}],
-            max_tokens=2048,
+            max_tokens=max_tokens,
             model=model,
             base_url=base_url,
             logger=logger
@@ -50,7 +48,7 @@ def process_instance(instance, function_id, model, base_url, logger, writer):
     
     desc = call(
         messages=[{"role": "user", "content": MAKE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], instance["hints_text"], result)}],
-        max_tokens=2048,
+        max_tokens=max_tokens,
         model=model,
         base_url=base_url,
         logger=logger
@@ -59,7 +57,7 @@ def process_instance(instance, function_id, model, base_url, logger, writer):
         print("Too long when generating desc")
         desc = call(
             messages=[{"role": "user", "content": MAKE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], "No Hints Text Provided", result)}],
-            max_tokens=2048,
+            max_tokens=max_tokens,
             model=model,
             base_url=base_url,
             logger=logger
@@ -95,18 +93,19 @@ def generate_descriptions(args: argparse.Namespace) -> None:
     logger = logging.getLogger(__name__)
     model = Config.Description.model
     base_url = Config.Description.base_url
+    max_tokens = Config.Description.max_tokens
     
     if args.dataset_file.endswith(".jsonl"):
         with jsonlines.open(args.dataset_file, "r") as f:
-            test_instances = [line for line in f]
+            instances = [line for line in f]
     else:
         with open(args.dataset_file, "r") as f:
-            test_instances = json.load(f)
+            instances = json.load(f)
     
-    total_test_instances = len(test_instances)
-    print(f"Getting test case descriptions for {total_test_instances} test instances")
+    total_instances = len(instances)
+    print(f"Getting test case descriptions for {total_instances} test instances")
     
-    total_counter.total = total_test_instances
+    total_counter.total = total_instances
     total_counter.refresh()
     
     def report_rps():
@@ -124,19 +123,19 @@ def generate_descriptions(args: argparse.Namespace) -> None:
     with jsonlines.open(args.output_file, 'w') as writer:
         with ThreadPoolExecutor(max_workers=args.num_workers) as executor:
             futures = []
-            for function_id, instance in test_instances.items():
+            for instance in instances:
                 future = executor.submit(
                     process_instance, 
                     instance, 
-                    function_id, 
                     model, 
-                    base_url, 
+                    base_url,
+                    max_tokens,
                     logger,
                     writer
                 )
                 futures.append(future)
                 
-            for future in tqdm(futures, total=total_test_instances, desc="Processing", unit="items"):
+            for future in tqdm(futures, total=total_instances, desc="Processing", unit="items"):
                 try:
                     future.result()
                 except Exception as e:
