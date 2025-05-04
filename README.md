@@ -131,23 +131,13 @@ python -m swedev.testcases.get_testcases \
 ### Step 3: 🧪 Evaluate Test Cases
 
 #### Docker Method
-First, build a Docker image with required dependencies:
+
+We provide a Dockerfile based on Ubuntu 22.04 that installs all necessary dependencies for evaluation. The image includes comprehensive development tools. If you encounter errors, you can manually install the dependencies in `Dockerfile` and then use `docker commit` to save your image.
+
+First, build the Docker image:
 ```bash
-# Install comprehensive development environment
-apt update && apt install -y \
-    build-essential g++ gcc cmake make autoconf automake libtool pkg-config git curl wget unzip python3-dev \
-    python3-pip python3-venv python-is-python3 libssl-dev libbz2-dev liblzma-dev zlib1g-dev libffi-dev \
-    libsqlite3-dev libreadline-dev libgdbm-dev libdb-dev libexpat1-dev libxml2-dev \
-    libxslt1-dev libyaml-dev libevent-dev libboost-all-dev libprotobuf-dev protobuf-compiler \
-    libcurl4-openssl-dev libjpeg-dev libpng-dev libtiff-dev libfreetype-dev libx11-dev \
-    libxext-dev libxrender-dev libxrandr-dev libxi-dev libxtst-dev libxinerama-dev libxkbcommon-dev libxkbcommon-x11-dev \
-    libfontconfig1-dev libharfbuzz-dev libpango1.0-dev libcairo2-dev libgtk-3-dev libqt5widgets5t64 \
-    qtbase5-dev qttools5-dev-tools libtbb-dev libopenblas-devliblapack-dev libatlas-base-dev \
-    libsuitesparse-dev libeigen3-dev libgmp-dev libmpfr-dev libboost-python-dev libbz2-dev liblz4-dev \
-    libzstd-dev libarchive-dev libsnappy-dev libuv1-dev librocksdb-dev libwebp-dev libxmlsec1-dev libgsl-dev \
-    libgflags-dev libgoogle-glog-dev libhdf5-dev libtiff5-dev libyaml-cpp-dev libgd-dev default-jdk \
-    openjdk-11-jdk openjdk-17-jdk maven gradle nodejs npm ruby-dev perl lua5.3 rustc cargo golang-go clang llvm lldb valgrind \
-    ccache lcov doxygen graphviz gdb bison flex swig ninja-build libapache2-mod-php php-cli php-dev
+# Build the Docker image from the provided Dockerfile
+docker build -t swedev-evaluator:latest .
 ```
 
 Run the evaluation container:
@@ -156,7 +146,7 @@ docker run -d --network host \
   -v /raid:/raid \
   -w /raid/SWE-Dev \
   --restart always \
-  testcase-image:latest \
+  swedev-evaluator:latest \
   /raid/swedev/miniforge3/envs/swedev/bin/python -m swedev.testcases.eval_testcases \
   --dataset /raid/SWE-Dev/results/testcases-0218/output.jsonl \
   --output_folder /raid/SWE-Dev/results/evaluation-0218 \
@@ -166,6 +156,7 @@ docker run -d --network host \
 You should use **absolute path** when mounting directories
 
 #### Non-Docker Method
+
 ```bash
 python -m swedev.testcases.eval_testcases \
     --dataset results/testcases-0218/output.jsonl \
