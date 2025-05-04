@@ -140,18 +140,16 @@ python -m swedev.crawl.get_top_pypi \
     --num_workers 8 \
     --start_at 0
 ```
-> ⚠️ Note: Keep concurrency lower to respect GitHub rate limits
 
-#### Option 2: Custom GitHub Crawler
+#### Option 2: Fetch All PyPI Repositories
+
 ```bash
-python -m src.issues.github_crawler \
-    --start_page 0 \
-    --end_page 2000 \
-    --min_stars 500 \
-    --max_repos 20000 \
-    --workers 64 \
-    --delay 10
+python -m swedev.crawl.pypi_crawler \
+    --output results/packages/github_urls.jsonl \
+    --workers 16
 ```
+
+> ⚠️ Note: Keep concurrency lower to respect GitHub rate limits
 
 #### Process the repositories
 ```bash
