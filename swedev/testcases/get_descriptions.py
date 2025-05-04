@@ -37,7 +37,6 @@ def process_instance(instance, model, base_url, max_tokens, logger, writer):
         logger=logger
     )
     if result == "Error":
-        print("Too long when generating raw desc")
         result = call(
             messages=[{"role": "user", "content": SUMMARIZE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], "No Hints Text Provided")}],
             max_tokens=max_tokens,
@@ -54,7 +53,6 @@ def process_instance(instance, model, base_url, max_tokens, logger, writer):
         logger=logger
     )
     if desc == "Error":
-        print("Too long when generating desc")
         desc = call(
             messages=[{"role": "user", "content": MAKE_GHERKIN_TEST.format(instance["repo"], instance["problem_statement"], instance["patch"], "No Hints Text Provided", result)}],
             max_tokens=max_tokens,
@@ -81,7 +79,6 @@ def process_instance(instance, model, base_url, max_tokens, logger, writer):
     
     with rps_lock:
         writer.write(result_obj)
-        writer.flush()
         saved_counter.update(1)
     
     return result_obj

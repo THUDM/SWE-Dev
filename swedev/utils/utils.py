@@ -227,6 +227,7 @@ def call(
                 response = response.json()
                 if not 'choices' in response.keys():
                     logger and logger.critical(response)
+                print(response)
                 content = response["choices"][0]["message"]["content"]
                 return content
             except Exception as e:
