@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
-from src.utils.postprocess import extract_code_blocks, extract_locs_for_files
-from src.utils.preprocess import get_full_file_paths_and_classes_and_functions, line_wrap_content, show_project_structure
-from src.utils.utils import call
+from swedev.utils.postprocess import extract_code_blocks, extract_locs_for_files
+from swedev.utils.preprocess import get_full_file_paths_and_classes_and_functions, line_wrap_content, show_project_structure
+from swedev.utils.utils import call
 import os
-from src.config import Config
+from swedev.config import Config
 
 class FileLocalizer(ABC):
     """Abstract class for file localizer"""

@@ -12,7 +12,7 @@ import aiohttp
 import asyncio
 import pandas as pd
 from tqdm import tqdm
-from src.config import Config
+from swedev.config import Config
 
 # Use GitHub tokens from config
 if not Config.github_tokens:

@@ -1,7 +1,3 @@
-# SWE-Dev User Configuration Example
-# Rename this file to user.yaml and adjust settings to meet your needs
-# Use --config-name=user when starting to use this configuration
-
 # Basic directory settings
 paths:
   conda_bin: /path/to/conda/bin/conda  # Change to your conda path

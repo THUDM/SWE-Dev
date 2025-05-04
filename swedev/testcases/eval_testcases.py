@@ -10,11 +10,11 @@ import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import jsonlines
-from src.localizer.get_repo_structure import clone_repo
-from src.utils.utils import (extract_test_patch, get_environment_yml,
+from swedev.localizer.get_repo_structure import clone_repo
+from swedev.utils.utils import (extract_test_patch, get_environment_yml,
                              get_requirements)
 from tqdm import tqdm
-from src.config import Config
+from swedev.config import Config
 
 DEBUG = False
 

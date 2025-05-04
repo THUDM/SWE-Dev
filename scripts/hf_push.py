@@ -3,7 +3,7 @@ import os
 
 from datasets import Dataset, DatasetDict, load_dataset
 from huggingface_hub import HfApi, HfFolder, Repository
-from src.config import get_config_value
+from swedev.config import get_config_value
 
 
 def download():

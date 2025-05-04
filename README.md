@@ -125,19 +125,13 @@ max_repos = get_config_value('data_collection.max_repos', 5000)  # With default 
 
 #### Environment Variables Fallbacks
 
-Config values can be specified through environment variables as fallbacks. For example:
-- `OPENAI_API_KEY` for OpenAI API access
-- `GITHUB_TOKENS` for GitHub tokens (comma-separated)
-
-Note: The configuration system will prioritize values in the YAML file over environment variables.
-
 ### Step 1: 📊 Data Collection from GitHub
 
 Set up your configuration in `conf/config/default.yaml` with GitHub tokens and repository directories before running these commands.
 
 #### Option 1: Collect Top PyPI Repositories
 ```bash
-python -m src.issues.get_top_pypi \
+python -m swedev.crawl.get_top_pypi \
     --max_repos 5000 \
     --output_folder results/issues/top_pypi \
     --num_workers 8 \
@@ -286,3 +280,5 @@ We thank the following open-source projects for their contributions:
 - [**Agentless**](https://github.com/OpenAutoCoder/Agentless)
 
 - [**OpenHands**](https://github.com/All-Hands-AI/OpenHands)
+
+- [**Nebius**](https://nebius.com/blog/posts/scaling-data-collection-for-training-swe-agents)

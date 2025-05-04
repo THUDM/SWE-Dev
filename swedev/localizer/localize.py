@@ -15,10 +15,10 @@ import jsonlines
 from swebench.collect.get_repo_structure import get_repo_structure
 from tqdm import tqdm
 
-from src.config import Config
-from src.localizer.file_localizer import LLMFileLocalizer
-from src.localizer.get_repo_structure import get_project_structure_from_scratch, get_files_and_classes_for_repos
-from src.utils.preprocess import filter_none_python, filter_out_test_files
+from swedev.config import Config
+from swedev.localizer.file_localizer import LLMFileLocalizer
+from swedev.localizer.get_repo_structure import get_project_structure_from_scratch, get_files_and_classes_for_repos
+from swedev.utils.preprocess import filter_none_python, filter_out_test_files
 
 DEBUG = True
 

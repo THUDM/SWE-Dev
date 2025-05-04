@@ -1,7 +1,7 @@
 import os
 import subprocess
-from src.utils.preprocess import parse_python_file
-from src.config import Config
+from swedev.utils.preprocess import parse_python_file
+from swedev.config import Config
 
 DEBUG = False
 

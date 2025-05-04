@@ -15,12 +15,12 @@ from typing import Dict, List, Any, Set, Tuple
 from pathlib import Path
 
 import jsonlines
-from src.utils.error_handler import *
-from src.utils.extract_signs import *
-from src.utils.prompts import *
-from src.utils.utils import *
+from swedev.utils.error_handler import *
+from swedev.utils.extract_signs import *
+from swedev.utils.prompts import *
+from swedev.utils.utils import *
 from tqdm import tqdm
-from src.config import Config
+from swedev.config import Config
 
 call_counter = tqdm(desc="API Calls", unit="calls")
 total_counter = tqdm(desc="Progress", unit="items")

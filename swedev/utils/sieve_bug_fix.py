@@ -1,7 +1,7 @@
 import concurrent.futures
 import json
 import random
-from src.utils.utils import *
+from swedev.utils.utils import *
 
 def get_url():
     urls = ["https://api.openai.com/v1"]

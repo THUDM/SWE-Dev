@@ -11,7 +11,7 @@ from ghapi.all import GhApi
 from logzero import logger
 from tqdm import tqdm
 from unidiff import PatchSet
-from src.config import Config
+from swedev.config import Config
 from swebench.collect.utils import (Repo, extract_patches, extract_problem_statement_and_hints)
 
 logging.basicConfig(

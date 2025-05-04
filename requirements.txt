@@ -1,5 +1,4 @@
 transformers
-modelscope
 tree-sitter==0.21.3
 tree-sitter-languages==1.10.2
 grep-ast==0.3.2

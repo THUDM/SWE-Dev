@@ -9,12 +9,8 @@ from collections import defaultdict
 from pathlib import Path
 
 import requests
-from modelscope import AutoTokenizer
 import os
-import random
-import re
-import string
-from src.config import Config
+from swedev.config import Config
 
 SWE_BENCH_URL_RAW = "https://raw.githubusercontent.com/"
 

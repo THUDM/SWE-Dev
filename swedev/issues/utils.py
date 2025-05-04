@@ -19,7 +19,7 @@ import base64
 import json
 import tiktoken
 from logzero import logger
-from src.config import Config
+from swedev.config import Config
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"

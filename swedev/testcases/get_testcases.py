@@ -12,15 +12,15 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Dict
 
-from src.localizer.get_repo_structure import clone_repo
-from src.localizer.localize import get_location
-from src.testcases.eval_testcases import init_env, run_tests, setup_env
-from src.utils.error_handler import *
-from src.utils.extract_signs import *
-from src.utils.prompts import *
-from src.utils.utils import *
+from swedev.localizer.get_repo_structure import clone_repo
+from swedev.localizer.localize import get_location
+from swedev.testcases.eval_testcases import init_env, run_tests, setup_env
+from swedev.utils.error_handler import *
+from swedev.utils.extract_signs import *
+from swedev.utils.prompts import *
+from swedev.utils.utils import *
 from tqdm import tqdm
-from src.config import Config, get_config_value
+from swedev.config import Config, get_config_value
 
 REVISE_ROUNDS = 0
 

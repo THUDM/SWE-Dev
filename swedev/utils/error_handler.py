@@ -4,7 +4,7 @@ from difflib import get_close_matches
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from src.utils.utils import *
+from swedev.utils.utils import *
 
 
 class ErrorType(Enum):

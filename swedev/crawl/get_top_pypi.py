@@ -1,9 +1,8 @@
 import argparse
 import json
-import multiprocessing as mp
 import os
 import random
-from multiprocessing import Lock, Manager, Pool
+from multiprocessing import Pool
 
 from bs4 import BeautifulSoup
 from ghapi.core import GhApi
@@ -11,13 +10,15 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
-from src.config import Config
+from swedev.config import Config
 
 if not Config.github_tokens:
     msg = "GitHub tokens not configured. Please configure github_tokens in your config file or set the GITHUB_TOKENS environment variable."
     raise ValueError(msg)
+
 apis = [GhApi(token=gh_token) for gh_token in Config.github_tokens]
-print("GH_tokens:", Config.github_tokens)
+print("GITHUB_TOKENS:", Config.github_tokens)
+
 def get_api():
     return random.sample(apis, 1)[0]
 
@@ -39,7 +40,6 @@ def process_package(args):
         package_name = title
         package_url = href
 
-        # Get github URL
         package_github = None
         driver.get(package_url)
         soup = BeautifulSoup(driver.page_source, "html.parser")
@@ -174,7 +174,7 @@ def main():
             package_data, 
             output_file,
             args.num_workers,
-            start_at=args.start_at  # Pass the start_at argument here
+            start_at=args.start_at
         )
         
     finally:
