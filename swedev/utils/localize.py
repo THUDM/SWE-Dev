@@ -1,31 +1,20 @@
-import argparse
+
 import ast
-import concurrent.futures
-import json
 import logging
 import os
 import re
 import subprocess
-import traceback
-import time
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import List, Tuple
 
-import jsonlines
-from swebench.collect.get_repo_structure import get_repo_structure
-from tqdm import tqdm
-
+from swedev.utils.utils import clone_repo
+from swedev.utils.preprocess import parse_python_file
 from swedev.config import Config
-from swedev.localizer.file_localizer import LLMFileLocalizer
-from swedev.localizer.get_repo_structure import get_project_structure_from_scratch, get_files_and_classes_for_repos
 from swedev.utils.preprocess import filter_none_python, filter_out_test_files
-
-DEBUG = True
 
 def has_python_files(path, max_depth=3, current_depth=0):
     if current_depth >= max_depth:
         return False
-    
     try:
         for entry in path.iterdir():
             if entry.is_file() and entry.suffix == '.py':
@@ -74,7 +63,6 @@ def get_tree_string(directory, max_depth=3):
         result.append(f"{root.name} (no Python files)")    
     return '\n'.join(result)
 
-# begin of patch localization
 def parse_patch(patch_content: str) -> List[Tuple[str, int, int]]:
     file_ranges = []
     file_path = None
@@ -181,134 +169,60 @@ def get_location(data):
         "project_tree": project_tree
     }
 
-def process_single_instance(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Process single instance."""
-    structure = get_project_structure_from_scratch(
-        data["repo"], data["base_commit"], data["instance_id"], Config.playground_path
-    )
-    if not structure:
-        print('[No structure found]')
-        return None
-    instance_id = structure["instance_id"]
+def repo_to_top_folder(repo_name):
+    return repo_name.split('/')[-1]
 
-    hints_text = data["hints_text"]
-    problem_statement = data["problem_statement"]
-    structure = structure["structure"]
-    filter_none_python(structure)
-    
-    if not instance_id.startswith("pytest"):
-        filter_out_test_files(structure)
+def create_structure(directory_path):
+    """Create the structure of the repository directory by parsing Python files.
+    :param directory_path: Path to the repository directory.
+    :return: A dictionary representing the structure.
+    """
+    structure = {}
 
-    # localize in file patches
-    patch = data["patch"]
-    file_ranges = parse_patch(patch)
-    repo_name = data["repo"]
-    commit_id = data["base_commit"]
-    repo_id = f'{instance_id}_{repo_name.replace("/", "_")}_{commit_id}'
-    repo_playground = os.path.join(Config.playground_path, repo_id, repo_name.split("/")[-1])
-
-    try:
-        subprocess.run(['git', 'add', '.'], cwd=repo_playground, capture_output=True, text=True)
-        subprocess.run(['git', 'stash'], cwd=repo_playground, capture_output=True, text=True)
-        subprocess.run(['git', 'stash', 'clear'], cwd=repo_playground, capture_output=True, text=True)
-        subprocess.run(['git', 'checkout', commit_id], cwd=repo_playground, capture_output=True, text=True)
-    except Exception as e:
-        pass
-
-    patch_blocks = []
-    for file_path, start_line, end_line in file_ranges:
-        if not file_path.endswith(".py"):
-            continue
-        try:
-            code_block = find_containing_blocks(os.path.join(repo_playground, file_path), start_line, end_line)
-            if code_block:
-                patch_blocks.append({
-                    "file": file_path,
-                    "code": code_block
-                })
+    for root, _, files in os.walk(directory_path):
+        repo_name = os.path.basename(directory_path)
+        relative_root = os.path.relpath(root, directory_path)
+        if relative_root == ".":
+            relative_root = repo_name
+        curr_struct = structure
+        for part in relative_root.split(os.sep):
+            if part not in curr_struct:
+                curr_struct[part] = {}
+            curr_struct = curr_struct[part]
+        for file_name in files:
+            if file_name.endswith(".py"):
+                file_path = os.path.join(root, file_name)
+                class_info, function_names, file_lines = parse_python_file(file_path)
+                curr_struct[file_name] = {
+                    "classes": class_info,
+                    "functions": function_names,
+                    "text": file_lines,
+                }
             else:
-                with open(file_path, 'r') as f:
-                    lines = f.readlines()
-                raw_code = "".join(lines[start_line-1:end_line])
-                patch_blocks.append({
-                    "file": file_path,
-                    "code": raw_code
-                })
-        except:
-            pass
-    project_tree = get_tree_string(repo_playground).strip()
-    return {
-        "repo": repo_name,
-        "instance_id": instance_id,
-        "problem_statement": problem_statement,
-        "hints_text": hints_text,
-        "patch": patch,
+                curr_struct[file_name] = {}
+
+    return structure
+
+def get_project_structure_from_scratch(repo, commit_id, instance_id, repo_playground):
+    """Get the project structure from scratch
+    :param repo: Repository name
+    :param commit_id: Commit ID
+    :param instance_id: Instance ID
+    :param repo_playground: Repository playground
+    :return: Project structure
+    """
+    repo_id = f'{instance_id}_{repo.replace("/", "_")}_{commit_id}'
+    repo_path = f"{repo_playground}/{repo_id}/{repo.split('/')[-1]}"
+    if not os.path.exists(repo_path) or not os.path.exists(os.path.join(repo_path, "setup.py")) \
+            and not os.path.exists(os.path.join(repo_path, "pyproject.toml")):
+        os.makedirs(f"{repo_playground}/{repo_id}", exist_ok=True)
+        clone_repo(repo, f"{repo_playground}/{repo_id}")
+    subprocess.run(['git', 'checkout', commit_id], cwd=repo_path, capture_output=True, text=True)
+    structure = create_structure(repo_path)
+    repo_info = {
+        "repo": repo,
         "base_commit": commit_id,
-        "created_at": data["created_at"],
-        "hints_text": data["hints_text"],
-        "patch_blocks": patch_blocks,
-        "project_tree": project_tree,
-        "test_patch": data["test_patch"],
+        "structure": structure,
+        "instance_id": instance_id,
     }
-
-def localize(args: argparse.Namespace):
-    dataset = args.dataset
-    print("start loading files")
-    if dataset.endswith('.json'):
-        with open(args.dataset, 'r') as f:
-            dataset = json.load(f)
-    elif dataset.endswith('.jsonl'):
-        with open(args.dataset, 'r') as f:
-            dataset = [json.loads(line) for line in f]
-    else:
-        raise ValueError("Dataset file must be in JSON or JSONL format")
-    print(f"end loading files, total: {len(dataset)} pieces.")
-    with concurrent.futures.ProcessPoolExecutor(max_workers=args.num_workers) as executor:
-        futures = [
-            executor.submit(process_single_instance, data)
-            for data in dataset
-        ]
-        
-        results = []
-        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures)):
-            try:
-                result = future.result()
-                if result:
-                    results.append(result)
-                    with open(args.output_file, "a") as f:
-                        f.write(json.dumps(result) + "\n")
-            except Exception as e:
-                print(f"Error processing localization: {str(e)}")
-                traceback.print_exc()
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, required=True)
-    parser.add_argument("--output_folder", type=str, required=True)
-    parser.add_argument("--output_file", type=str, default="loc_outputs.jsonl")
-    parser.add_argument("--top_n", type=int, default=3)
-    parser.add_argument("--temperature", type=float, default=0.0)
-    parser.add_argument("--num_samples", type=int, default=1)
-    parser.add_argument("--num_workers", type=int, default=4)
-
-    args = parser.parse_args()
-    os.makedirs(args.output_folder, exist_ok=True)
-    args.output_file = os.path.join(args.output_folder, args.output_file)
-    
-    if not os.path.exists(args.output_folder):
-        os.makedirs(args.output_folder, exist_ok=True)
-
-    if os.path.exists(args.output_file):
-        logging.warning("Output file already exists, will overwrite it.")
-    with open(f"{args.output_folder}/args.json", "w") as f:
-        json.dump(vars(args), f, indent=4)
-
-    logging.basicConfig(
-        filename=f"{args.output_folder}/localize.log",
-        level=logging.DEBUG,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-    )
-    localize(args)
-
-if __name__ == "__main__":
-    main()
+    return repo_info

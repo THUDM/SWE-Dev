@@ -205,7 +205,6 @@ def parse_api(response):
 if __name__ == "__main__":
     root_directory = "."
     output_file = "classes_and_functions.txt"
-    # api_dict = generate_signatures(extract_classes_and_functions_from_directory(root_directory), type="class")
     api_dict = generate_signatures(extract_classes_and_functions_from_directory(root_directory), type="function")
     print(api_dict[:10])
     print(f"Saved classes and functions to {output_file}")

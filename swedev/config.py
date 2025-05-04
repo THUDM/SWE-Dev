@@ -132,10 +132,6 @@ class Config:
     openai_api_key = OPENAI_API_KEY
     
     # Pipeline stage settings
-    class Localizer:
-        model = get_config_value("localizer.model", OPENAI_BASE_MODEL)
-        base_url = get_config_value("localizer.base_url", OPENAI_BASE_URL)
-    
     class Description:
         model = get_config_value("description.model", OPENAI_BASE_MODEL)
         base_url = get_config_value("description.base_url", OPENAI_BASE_URL)

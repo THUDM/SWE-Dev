@@ -12,13 +12,12 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Dict
 
-from swedev.localizer.get_repo_structure import clone_repo
-from swedev.localizer.localize import get_location
 from swedev.testcases.eval_testcases import init_env, run_tests, setup_env
-from swedev.utils.error_handler import *
-from swedev.utils.extract_signs import *
-from swedev.utils.prompts import *
-from swedev.utils.utils import *
+from swedev.utils.localize import get_location
+from swedev.utils.error_handler import call
+from swedev.utils.extract_signs import api_formatter, find_top_similar_apis, extract_classes_and_functions_from_directory, generate_signatures
+from swedev.utils.prompts import REVISION_AFTER_PROMPT, REVISION_BEFORE_PROMPT, TESTCASE_FORMAT, TESTCASE_GENERATION, EXTRACT_API_PROMPT
+from swedev.utils.utils import parse_api, clone_repo
 from tqdm import tqdm
 from swedev.config import Config, get_config_value
 

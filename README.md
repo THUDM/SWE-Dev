@@ -2,13 +2,11 @@
 
 📝 [Blog](https://www.notion.so/ubecwang/1bc32cf963e080b2a01df2895f66021f?v=1bc32cf963e0810ca07e000c86c4c1e1) | 🤗 [Huggingface](https://huggingface.co/THUDM/SWE-Dev-32B) | 💻[Github](https://github.com/UbeCc/SWE-Dev)
 
-This repository is a comprehensive pipeline for creating developer-oriented datasets from GitHub repositories, including issue tracking, code localization, test case generation, and evaluation.
+This repository is a comprehensive pipeline for creating developer-oriented datasets from GitHub repositories, including issue tracking, test case generation, and evaluation.
 
 ## 🔄 Pipeline Overview
 
 ### Step 0: 🛠️ Configuration Setup
-
-SWE-Dev uses [Hydra](https://hydra.cc/) for configuration management. All settings are stored in a single YAML file.
 
 #### Configuration File
 
@@ -27,7 +25,7 @@ python -m swedev.config --validate
 To view the current configuration:
 
 ```bash
-python -m src.config --print
+python -m swedev.config --print
 ```
 
 #### Overriding Configuration in Command Line
@@ -43,7 +41,7 @@ python your_script.py paths.local_repo_dir=/new/path github.tokens=[token1,token
 ##### Option 1: Using the Config Class (Recommended)
 
 ```python
-from src.config import Config
+from swedev.config import Config
 
 # Access basic configuration
 conda_base = Config.conda_base
@@ -67,7 +65,7 @@ if errors:
 ##### Option 2: Using get_config_value (Legacy)
 
 ```python
-from src.config import get_config_value
+from swedev.config import get_config_value
 
 # Access configuration values
 conda_bin = get_config_value('paths.conda_bin')
@@ -112,55 +110,44 @@ python -m swedev.issues.get_tasks_pipeline \
     --max_pulls 1000
 ```
 
-This will clone repositories to the directory specified by `local_repo_dir` in your configuration.
+If you enable `--do_clone`, the script will clone repositories to the directory specified by `local_repo_dir` in your configuration.
 
-If you encounter persistent `404 - Error` messages, manually terminate and combine results:
+> If you encounter persistent `404 - Error` messages, manually terminate and combine results
+
 ```bash
-python -m src.issues.get_tasks_pipeline \
-    --repo_file results/issues/top_pypi/gh-urls-pr-3-star-5.jsonl \
+python -m swedev.issues.get_tasks_pipeline \
+    --repo_file results/issues/packages/pypi_rankings.jsonl \
     --output_folder results/issues \
     --combine_results
 ```
 
-### Step 2: 🔍 Code Localization
-
-Locate relevant files for the issues identified in Step 1:
-```bash
-python -m src.localizer.localize \
-    --dataset results/issues/all_tasks.jsonl \
-    --output_folder results/location \
-    --output_file loc_outputs.jsonl \
-    --top_n 5 \
-    --num_workers 128
-```
+### Step 2: 📝 Generate Test Cases
 
 For parallel environments, create a base environment first to avoid Conda concurrent installation issues:
 ```bash
 conda create -n swedevbase python=3.11 -y
-conda create -n {env_name} --clone swedevbase
+conda create -n {env_name} --clone swedevbase # For later usage
 ```
-
-### Step 3: 📝 Generate Test Cases
 
 First, generate descriptions:
 ```bash
-python -m src.testcases.get_descriptions.py \
+python -m swedev.testcases.get_descriptions.py \
     --loc_file results/dataset_wo_description.jsonl \
     --top_n 5 \
-    --output_folder results/descs-0227 \
+    --output_folder results/descriptions \
     --num_workers 100
 ```
 
 Then generate test cases:
 ```bash
-python -m src.testcases.get_testcases \
+python -m swedev.testcases.get_testcases \
     --loc_file results/descs-0227/output.jsonl \
     --top_n 5 \
     --output_folder results/testcases-0227/ \
     --num_workers 30
 ```
 
-### Step 4: 🧪 Evaluate Test Cases
+### Step 3: 🧪 Evaluate Test Cases
 
 #### Docker Method
 First, build a Docker image with required dependencies:
@@ -189,7 +176,7 @@ docker run -d --network host \
   -w /raid/SWE-Dev \
   --restart always \
   testcase-image:latest \
-  /raid/swedev/miniforge3/envs/swedev/bin/python -m src.testcases.eval_testcases \
+  /raid/swedev/miniforge3/envs/swedev/bin/python -m swedev.testcases.eval_testcases \
   --dataset /raid/SWE-Dev/results/testcases-0218/output.jsonl \
   --output_folder /raid/SWE-Dev/results/evaluation-0218 \
   --num_workers 48
@@ -199,21 +186,21 @@ You should use **absolute path** when mounting directories
 
 #### Non-Docker Method
 ```bash
-python -m src.testcases.eval_testcases \
+python -m swedev.testcases.eval_testcases \
     --dataset results/testcases-0218/output.jsonl \
     --output_folder results/evaluation-0218 \
     --num_workers 32
 ```
 
-### Step 5: 📈 View Evaluation Results
+### Step 4: 📈 View Evaluation Results
 
 ```bash
-python -m src.testcases.eval_testcases \
+python -m swedev.testcases.eval_testcases \
     --dataset results/evaluation-0218/evaluated_testcases \
     --show_report
 ```
 
-### Step 6: 📦 Create Final Dataset
+### Step 5: 📦 Create Final Dataset
 
 ```bash
 python src/testcases/swebench_formatter.py \

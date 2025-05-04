@@ -295,3 +295,26 @@ def extract_test_patch(repo_path, test_patch):
     except subprocess.CalledProcessError as e:
         print(f"Error applying patch: {e}")
     return test_files
+
+def clone_repo(repo, repo_playground):
+    DO_CLONE = (not os.path.exists(f"{Config.local_repo_dir}/{repo_to_top_folder(repo)}")) or len(os.listdir(f"{Config.local_repo_dir}/{repo_to_top_folder(repo)}")) <= 1
+    try:
+        if DO_CLONE:
+            if os.path.exists(f"{Config.local_repo_dir}/{repo_to_top_folder(repo)}"):
+                os.system(f'rm -rf {Config.local_repo_dir}/{repo_to_top_folder(repo)}')
+            for _ in range(3):
+                result = subprocess.run(
+                    f"git clone https://github.com/{repo}.git {Config.local_repo_dir}/{repo_to_top_folder(repo)}",
+                    check=True,
+                    shell=True
+                )
+                if result.returncode == 0:
+                    break
+        os.makedirs(repo_playground, exist_ok=True)
+        subprocess.run(
+            f"cp -r {Config.local_repo_dir}/{repo_to_top_folder(repo)} {repo_playground}",
+            check=True,
+            shell=True
+        )
+    except Exception as e:
+        print(f"An unexpected error occurred when copying repo: {e}")
