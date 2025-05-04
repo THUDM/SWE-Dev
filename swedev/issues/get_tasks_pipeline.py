@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import subprocess
 import time
@@ -7,7 +6,6 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import cycle
 from threading import Lock
-from typing import Any, Dict, List
 
 import jsonlines
 from dotenv import load_dotenv
@@ -34,7 +32,7 @@ def split_instances(input_list: list, n: int) -> list:
 
     return result
 
-def clone_repo(repo_name, output_folder):
+def clone_repo(repo_name):
     global downloaded_repos
     base_dir = Config.local_repo_dir
     assert base_dir, "local_repo_dir not configured"
@@ -54,14 +52,13 @@ def clone_repo(repo_name, output_folder):
             downloaded_repos.add(repo)
         return
 
-    # Retry logic with exponential backoff
     for retry in range(5):
         try:
             subprocess.run(
                 [
                     "git",
                     "clone",
-                    f"ssh://git@ssh.github.com:443/{repo_name}.git",
+                    f"https://github.com/{repo_name}.git",
                     repo_path
                 ], 
                 check=True,
@@ -71,21 +68,18 @@ def clone_repo(repo_name, output_folder):
             print(f"Successfully cloned {repo_name}")
             with downloaded_repos_lock:
                 downloaded_repos.add(repo)
-            break  # Success, exit retry loop
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to clone {repo_name} (attempt {retry + 1}/5): {e}")
-            time.sleep(2 ** retry)  # Exponential backoff delay
+            break
         except Exception as e:
-            print(f"An error occurred while cloning {repo_name}: {e}")
+            print(f"Failed to clone {repo_name} (attempt {retry + 1}/5): {e}")
             time.sleep(2 ** retry)
     else:
         print(f"Failed to clone {repo_name} after 5 attempts.")
 
-def process_repo(repo, output_folder, max_pulls, cutoff_date, token_iterator):
+def process_repo(repo, output_folder, max_pulls, cutoff_date, token_iterator, do_clone=True):
     repo = repo.strip(",").strip()
     repo_name = repo.split("/")[1]
 
-    token = next(token_iterator)  # Get next token from iterator (round-robin)
+    token = next(token_iterator)
     try:
         path_prs = os.path.join(output_folder, "prs")
         path_tasks = os.path.join(output_folder, "tasks")
@@ -123,11 +117,10 @@ def process_repo(repo, output_folder, max_pulls, cutoff_date, token_iterator):
         traceback.print_exc()
         print("-" * 80)
 
-    # Clone the repository after processing data
-    clone_repo(repo, output_folder)
+    if do_clone:
+        clone_repo(repo)
 
 def combine_results(output_folder: str,):
-    # Combine all repos
     print("Start combining results...")
     path_tasks = os.path.join(output_folder, "tasks")
     all_tasks = []
@@ -158,29 +151,35 @@ def main(
 
     with jsonlines.open(repo_file, "r") as f:
         repos = [d for d in f if d["github"]]
-        repos = [d["github"].replace("https://github.com/", "").replace(".git", "") for d in repos]
+        repos = [d["github"]
+                    .replace("http://github.com/", "")
+                    .replace("https://github.com/", "")
+                    .replace("git@github.com:", "")
+                    .replace(".git", "")
+                    .replace("github.com/", "")
+                    for d in repos]
         for i in range(len(repos)):
             if repos[i].endswith("/"):
                 repos[i] = repos[i][:-1]
             repos[i] = '/'.join(repos[i].split('/')[:2])
-    print(f"total repos: {len(repos)}")
+    
+    print(f"Total repos: {len(repos)}")
     used = []
-    used_path = "/root/CodeAgent/results/issues/tasks"
+    used_path = f'{output_folder}/tasks'
     if os.path.exists(used_path):
-        # -instances.jsonl
-        for file in os.listdir(used_path):
+         for file in os.listdir(used_path):
             if file.endswith("-instances.jsonl"):
                 used.extend([file.replace("-task-instances.jsonl", "")])
     repos = [r for r in repos if not r.split("/")[-1] in used]
-    print(f"rest repos: {len(repos)}")
+    print(f"Remaining repos: {len(repos)}")
     if start_index is not None or end_index is not None:
         repos = repos[start_index:end_index]
     repos = reversed(repos)
     tokens = Config.github_tokens
     if not tokens: 
         raise Exception("Missing github_tokens in configuration, add to config file or set GITHUB_TOKENS environment variable")
-
-    token_iterator = cycle(tokens)  # Create a round-robin iterator for tokens
+    tokens = [t.strip() for t in tokens.split(",")]
+    token_iterator = cycle(tokens)
 
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = [
@@ -218,6 +217,7 @@ if __name__ == "__main__":
     parser.add_argument("--start_index", type=int, help="Start index of the repository list", default=None)
     parser.add_argument("--end_index", type=int, help="End index of the repository list", default=None)
     parser.add_argument("--combine_results", action="store_true")
+    parser.add_argument("--do_clone", action="store_true")
     args = parser.parse_args()
     if args.combine_results:
         combine_results(args.output_folder)

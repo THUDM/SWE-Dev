@@ -77,7 +77,7 @@ def save_pkg_meta(name, output_file):
                 
                 entry = {
                     "package_name": name,
-                    "github_url": github_url
+                    "github": github_url
                 }
                 
                 with open(output_file, 'a') as f:

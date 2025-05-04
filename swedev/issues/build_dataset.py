@@ -4,13 +4,9 @@ import logging
 import os
 import re
 from typing import Optional
+import random
 
-import jsonlines
-import logzero
-from ghapi.all import GhApi
 from logzero import logger
-from tqdm import tqdm
-from unidiff import PatchSet
 from swedev.config import Config
 from swebench.collect.utils import (Repo, extract_patches, extract_problem_statement_and_hints)
 
@@ -113,7 +109,8 @@ def main(pr_file: str, output: str, token: Optional[str] = None):
     if token is None:
         # Get GitHub token from configuration
         if Config.github_tokens:
-            token = Config.github_tokens[0]
+            tokens = [t.strip() for t in Config.github_tokens.split(",")]
+            token = random.choice(tokens)
         else:
             raise ValueError("GitHub tokens not configured. Please configure github_tokens in your config file or set the GITHUB_TOKENS environment variable.")
 

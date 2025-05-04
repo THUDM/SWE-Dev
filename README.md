@@ -14,58 +14,12 @@ SWE-Dev uses [Hydra](https://hydra.cc/) for configuration management. All settin
 
 The main configuration file is located at `conf/config/default.yaml` and contains settings for all pipeline stages:
 
-```yaml
-# Basic directory settings
-paths:
-  conda_bin: /path/to/conda
-  conda_base: /path/to/conda_dir
-  local_repo_dir: /path/to/repos
-  playground: /path/to/playground
-
-# API credentials
-github:
-  tokens: []  # Add your GitHub tokens here
-
-# OpenAI settings
-openai:
-  base_url: http://api.openai.com/v1
-  base_model: gpt-4o
-  api_key: ${oc.env:OPENAI_API_KEY,sk-test}
-
-# Pipeline stage-specific model settings
-# These settings allow using different models for each stage
-localizer:
-  model: ${openai.base_model}
-  base_url: ${openai.base_url}
-
-description:
-  model: ${openai.base_model}
-  base_url: ${openai.base_url}
-
-testcase:
-  model: ${openai.base_model}
-  base_url: ${openai.base_url}
-  revise_rounds: 0  # Number of rounds to revise testcases
-  debug: false
-
-# Other settings
-data_collection:
-  max_repos: 5000
-  # ...
-
-code_localization:
-  # ...
-
-test_generation:
-  # ...
-```
-
 #### Validating Configuration
 
 To validate your configuration:
 
 ```bash
-python -m src.config --validate
+python -m swedev.config --validate
 ```
 
 #### Viewing Configuration
@@ -81,13 +35,10 @@ python -m src.config --print
 You can override any configuration value when running scripts:
 
 ```bash
-# Override configuration values
 python your_script.py paths.local_repo_dir=/new/path github.tokens=[token1,token2]
 ```
 
 #### Using Configuration in Code
-
-SWE-Dev provides a simple interface for accessing configuration values:
 
 ##### Option 1: Using the Config Class (Recommended)
 
@@ -153,8 +104,8 @@ python -m swedev.crawl.pypi_crawler \
 
 #### Process the repositories
 ```bash
-python -m src.issues.get_tasks_pipeline \
-    --repo_file results/issues/top_pypi/gh-urls.jsonl \
+python -m swedev.issues.get_tasks_pipeline \
+    --repo_file results/packages/pypi_rankings.jsonl \
     --output_folder results/issues \
     --cutoff_date 20210101 \
     --num_workers 64 \

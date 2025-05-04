@@ -9,30 +9,36 @@ from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from functools import lru_cache
 
-# Project root directory
-ROOT_DIR = Path(__file__).parent.parent.absolute()
+CONFIG_PATH = "../conf"
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config")
-def get_config(cfg: DictConfig) -> DictConfig:
-    """Get configuration"""
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def hydra_main_get_config(cfg: DictConfig) -> DictConfig:
+    """Hydra entry point to get configuration"""
     return cfg
 
-# Global config instance
-_CONFIG = None
-
-def init_config() -> DictConfig:
-    """Initialize configuration"""
-    global _CONFIG
-    if _CONFIG is None:
-        # Save original args to restore later
-        argv = sys.argv.copy()
-        sys.argv = [sys.argv[0]]
-        try:
-            _CONFIG = get_config()
-        finally:
-            sys.argv = argv
-    return _CONFIG
+# Cached config to prevent multiple Hydra initializations
+@lru_cache()
+def get_config() -> DictConfig:
+    """
+    Get configuration with caching to prevent multiple Hydra initializations
+    """
+    # Set Hydra to not change working directory and not print output
+    os.environ["HYDRA_FULL_ERROR"] = "1"
+    
+    # Save original args to restore later
+    argv = sys.argv.copy()
+    
+    # Temporarily modify sys.argv to contain only the script name
+    sys.argv = [sys.argv[0]]
+    
+    try:
+        with hydra.initialize_config_module(config_module="conf"):
+            cfg = hydra.compose(config_name="config")
+        return cfg
+    finally:
+        sys.argv = argv
 
 def get_config_value(path: str, default: Any = None) -> Any:
     """
@@ -45,9 +51,8 @@ def get_config_value(path: str, default: Any = None) -> Any:
     Returns:
         The configuration value
     """
-    cfg = init_config()
+    cfg = get_config()
     parts = path.split('.')
-    
     # Try to get value from config
     value = cfg
     try:
@@ -56,7 +61,7 @@ def get_config_value(path: str, default: Any = None) -> Any:
         return value
     except (KeyError, TypeError):
         # Try environment variable as fallback
-        env_var = '_'.join(part.upper() for part in parts)
+        env_var = '_'.join(p.upper() for p in parts)
         env_value = os.environ.get(env_var)
         if env_value is not None:
             return env_value
@@ -78,7 +83,6 @@ def validate_config() -> List[str]:
         if path_value and not os.path.exists(path_value):
             errors.append(f"Path does not exist: {path} = {path_value}")
     
-    # Validate GitHub tokens
     github_tokens = get_config_value("github.tokens", [])
     if not github_tokens:
         env_tokens = os.environ.get("GITHUB_TOKENS", "")
@@ -90,7 +94,7 @@ def validate_config() -> List[str]:
     
     return errors
 
-# Compatibility variables
+# Load values from config for module-level constants
 CONDA_BIN = get_config_value("paths.conda_bin")
 CONDA_BASE = get_config_value("paths.conda_base")
 LOCAL_REPO_DIR = get_config_value("paths.local_repo_dir")
@@ -98,6 +102,7 @@ PLAYGROUND_PATH = get_config_value("paths.playground")
 GITHUB_TOKENS = get_config_value("github.tokens", [])
 if not GITHUB_TOKENS and os.environ.get("GITHUB_TOKENS"):
     GITHUB_TOKENS = os.environ.get("GITHUB_TOKENS", "").split(",")
+GITHUB_API_URL = get_config_value("github.api_url", "https://api.github.com")
 OPENAI_BASE_URL = get_config_value("openai.base_url")
 OPENAI_BASE_MODEL = get_config_value("openai.base_model")
 OPENAI_API_KEY = get_config_value("openai.api_key")
@@ -119,6 +124,7 @@ class Config:
     
     # Github settings
     github_tokens = GITHUB_TOKENS
+    github_api_url = GITHUB_API_URL
     
     # OpenAI settings
     openai_base_url = OPENAI_BASE_URL
@@ -150,15 +156,17 @@ class Config:
         """Validate configuration"""
         return validate_config()
 
-# Simple printing function
 def print_config():
     """Print current configuration"""
-    cfg = init_config()
-    print(OmegaConf.to_yaml(cfg))
+    cfg = get_config()
+    if cfg is not None:
+        print(OmegaConf.to_yaml(cfg))
+    else:
+        print("Failed to load configuration")
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="SWE-Dev Configuration Tool")
     parser.add_argument('--print', action='store_true', help='Print current configuration')
     parser.add_argument('--validate', action='store_true', help='Validate configuration')
@@ -176,4 +184,4 @@ if __name__ == "__main__":
         else:
             print("Configuration is valid")
     else:
-        print_config() 
+        print_config()
