@@ -1,0 +1,13 @@
+include README.md
+include LICENSE
+include requirements.txt
+include requirements-base.txt
+
+recursive-include conf *
+recursive-include swedev *
+
+exclude .git
+exclude .gitignore
+exclude Dockerfile
+recursive-exclude results *
+recursive-exclude scripts * 

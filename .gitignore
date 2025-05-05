@@ -1,7 +1,8 @@
 outputs/
 local/
 experiments/
-
+dist/
+build/
 nohup.out
 # Folder view configuration files
 **/.DS_Store
