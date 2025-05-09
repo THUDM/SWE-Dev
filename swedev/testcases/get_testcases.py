@@ -11,6 +11,8 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Dict
+import warnings
+warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 from swedev.testcases.eval_testcases import init_env, run_tests, setup_env
 from swedev.utils.localize import get_location
@@ -205,6 +207,7 @@ def process_single_instance(data: Dict, args: argparse.Namespace, logger: loggin
         location = get_location(data)
         project_tree, patch_blocks = location["project_tree"], location["patch_blocks"]
         if not patch_blocks:
+            os.system(f"rm -rf {repo_playground}")
             return None
 
     try:
@@ -387,7 +390,6 @@ def make_testcases(args, logger: logging.Logger):
                 try:
                     prev_o.append(json.loads(d))
                 except Exception as e:
-                    # print(repr(d))
                     logging.info(e)
                     logging.info(traceback.print_exc())
         prev_o_ids = [o["instance_id"] for o in prev_o]
@@ -400,7 +402,12 @@ def make_testcases(args, logger: logging.Logger):
     result_lock = threading.Lock()
 
     def process_and_save(data, output_file, logger):
-        result = process_single_instance(data, args, logger)
+        try:
+            result = process_single_instance(data, args, logger)
+        except Exception as e:
+            print(f"Error processing instance {data['instance_id']}: {e}")
+            traceback.print_exc()
+            return
         if result:
             with result_lock:
                 if result["tests"]:

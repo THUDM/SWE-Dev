@@ -122,10 +122,10 @@ python -m swedev.testcases.get_descriptions \
 Then generate test cases:
 ```bash
 python -m swedev.testcases.get_testcases \
-    --dataset_file results/descriptions/output.jsonl \
+    --dataset_file results/descriptions/output_f2p.jsonl \
     --top_n 5 \
     --output_folder results/testcases/ \
-    --num_workers 4
+    --num_workers 80
 ```
 
 ### Step 3: 🧪 Evaluate Test Cases
@@ -147,10 +147,10 @@ docker run -d --network host \
   -w /raid/SWE-Dev \
   --restart always \
   swedev-evaluator:latest \
-  /raid/swedev/miniforge3/envs/swedev/bin/python -m swedev.testcases.eval_testcases \
-  --dataset /raid/SWE-Dev/results/testcases-0218/output.jsonl \
-  --output_folder /raid/SWE-Dev/results/evaluation-0218 \
-  --num_workers 48
+  /raid/SWE-Dev/miniforge3/envs/swedev/bin/python -m swedev.testcases.eval_testcases \
+  --dataset /raid/SWE-Dev/results/testcases/output.jsonl \
+  --output_folder /raid/SWE-Dev/results/evaluation-0508 \
+  --num_workers 80
 ```
 
 You should use **absolute path** when mounting directories
@@ -159,8 +159,8 @@ You should use **absolute path** when mounting directories
 
 ```bash
 python -m swedev.testcases.eval_testcases \
-    --dataset results/testcases-0218/output.jsonl \
-    --output_folder results/evaluation-0218 \
+    --dataset /raid/SWE-Dev/results/testcases/output.jsonl \
+    --output_folder results/evaluation-0508\
     --num_workers 32
 ```
 

@@ -55,7 +55,6 @@ def get_environment_yml(
             with open(env_file, "r") as f:
                 combined_lines.extend(f.readlines())
         except Exception as e:
-            # Log or print errors if necessary
             continue
 
     # Process and clean the environment.yml content
@@ -228,12 +227,12 @@ def call(
             try:
                 response = requests.post(url, json=data, headers=headers, proxies=proxies)
                 response = response.json()
-                if not 'choices' in response.keys():
-                    logger and logger.critical(response)
+                if 'message' in response and "model's context length" in response["message"]:
+                    return "Error" # context length error
                 content = response["choices"][0]["message"]["content"]
                 return content
             except Exception as e:
-                logger.info(f"Error when calling api: {e}")
+                logger.info(f"Error when calling api: {response}, {e}")
                 time.sleep(2)
         return "Error"
     else: # TGI and other platforms
@@ -308,7 +307,7 @@ def clone_repo(repo, repo_playground):
                 os.system(f'rm -rf {Config.local_repo_dir}/{repo_to_top_folder(repo)}')
             for _ in range(3):
                 result = subprocess.run(
-                    f"git clone https://github.com/{repo}.git {Config.local_repo_dir}/{repo_to_top_folder(repo)}",
+                    f"git clone https://github.com.psmoe.com/{repo}.git {Config.local_repo_dir}/{repo_to_top_folder(repo)}",
                     check=True,
                     shell=True
                 )

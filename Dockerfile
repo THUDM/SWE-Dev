@@ -19,7 +19,7 @@ RUN apt update && apt install -y \
     ccache lcov doxygen graphviz gdb bison flex swig ninja-build libapache2-mod-php php-cli php-dev \
     apt-utils software-properties-common vim nano emacs htop neofetch screen tmux git-lfs \
     sqlite3 postgresql-client mysql-client redis-tools openssh-client rsync zip p7zip-full \
-    jq yq parallel locales pipx
+    jq parallel locales pipx
 
 # Setup locale
 RUN locale-gen en_US.UTF-8

@@ -93,7 +93,10 @@ def find_containing_blocks(file_path: str, start_line: int, end_line: int) -> st
     blocks = []
     
     try:
-        tree = ast.parse(source)
+        def safe_parse(source):
+            clean_source = re.sub(r'[^\x00-\x7F]+', '', source)
+            return ast.parse(clean_source)
+        tree = safe_parse(source)
         
         def is_line_in_node(node, start, end):
             return (node.lineno <= start <= node.end_lineno or 
@@ -116,7 +119,6 @@ def find_containing_blocks(file_path: str, start_line: int, end_line: int) -> st
         return "\n".join(sorted_blocks)
     
     except Exception as e:
-        logging.critical(f'Error parsing file: {e}')
         return None
 
 def get_location(data):
@@ -136,7 +138,6 @@ def get_location(data):
     # localize in file patches
     patch = data["patch"]
     file_ranges = parse_patch(patch)
-    print(file_ranges)
     repo_name = data["repo"]
     commit_id = data["base_commit"]
     repo_id = f'{instance_id}_{repo_name.replace("/", "_")}_{commit_id}'
@@ -162,7 +163,6 @@ def get_location(data):
                     "code": code_block
                 })
         except Exception as e:
-            logging.critical(f"Error localizing patch: {e}")
             pass
     project_tree = get_tree_string(repo_playground).strip()
     return {

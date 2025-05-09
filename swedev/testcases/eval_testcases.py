@@ -15,10 +15,11 @@ from swedev.utils.utils import (extract_test_patch, get_environment_yml,
 from tqdm import tqdm
 from swedev.config import Config
 
-def is_test_folder_empty(folder_path):
+def is_test_folder_empty(folder_path, env_name):
     try:
+        env_code = f'{Config.conda_base}/envs/{env_name}/bin/python -m pytest --collect-only {folder_path}'
         result = subprocess.run(
-            ["pytest", "--collect-only", folder_path],
+            env_code,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
@@ -27,7 +28,7 @@ def is_test_folder_empty(folder_path):
             return True
         else:
             return False
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         print(f"Error running pytest: {e}")
         return False
 
@@ -170,7 +171,7 @@ def reset(repo, repo_playground, commit_id, logger, remove=False):
         if os.path.exists(repo_playground):
             os.system(f'rm -rf {repo_playground}')
         os.makedirs(repo_playground, exist_ok=True)
-        clone_repo(repo, repo_playground, logger)
+        clone_repo(repo, repo_playground)
     
     reset_repo()
 
@@ -309,7 +310,8 @@ def run_tests(repo, repo_playground, env_name, testcases, correct_only=False, gi
                         "type": type(e).__name__
                     }
                 finally:
-                    os.remove(test_path)
+                    if os.path.exists(test_path):
+                        os.remove(test_path)
                 if result['status'] == 'error':
                     continue
                 if not "content" in result:
@@ -407,10 +409,10 @@ def evaluate_testcase(instance, given_testcase=None, eval_mode=False, logger=Non
     repo_playground = os.path.join(Config.playground_path, repo_id)
     repo_path = os.path.join(repo_playground, repo_name)
     env_name = f'swedev_{instance_id}'
-    clone_repo(repo, repo_playground, logger)
+    clone_repo(repo, repo_playground)
     init_env(env_name, repo, repo_playground, commit_id, testcases, logger)
 
-    if is_test_folder_empty(repo_playground) and not test_patch and not testcases:
+    if is_test_folder_empty(repo_playground, env_name) and not test_patch and not testcases:
         return None
     
     os.makedirs(repo_playground, exist_ok=True)
