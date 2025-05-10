@@ -17,7 +17,9 @@ from swedev.config import Config
 
 def is_test_folder_empty(folder_path, env_name):
     try:
-        env_code = f'{Config.conda_base}/envs/{env_name}/bin/python -m pytest --collect-only {folder_path}'
+        # collect all tests
+        # env_code = f'{Config.conda_base}/envs/{env_name}/bin/python -m pytest --collect-only {folder_path}'
+        env_code = f'{Config.conda_base}/envs/{env_name}/bin/python -m pytest --collect-only'
         result = subprocess.run(
             env_code,
             stdout=subprocess.PIPE,
@@ -204,7 +206,9 @@ def run_tests(repo, repo_playground, env_name, testcases, correct_only=False, gi
                 write_file(test_path, testcase['content'])
                 result = {}
                 try:
-                    run_code = f'{Config.conda_base}/envs/{env_name}/bin/python -m pytest --no-header -rA -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors --tb=short --json={repo_path}/report.json {test_path}'
+                    # run_code = f'{Config.conda_base}/envs/{env_name}/bin/python -m pytest --no-header -rA -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors --tb=short --json={repo_path}/report.json {test_path}'
+                    # run all existing tests
+                    run_code = f'{Config.conda_base}/envs/{env_name}/bin/python -m pytest --no-header -rA -p no:cacheprovider -W ignore::DeprecationWarning --continue-on-collection-errors --tb=short --json={repo_path}/report.json'
                     process = subprocess.run(
                         run_code,
                         cwd=repo_path,
@@ -472,17 +476,22 @@ def evaluate_testcase(instance, given_testcase=None, eval_mode=False, logger=Non
         result["content"] = testcases[i]["content"]
         result["env"] = testcases[i]["env"]
         FAIL_TO_PASS = []
+        PASS_TO_PASS = []
         if 'functions' in results_with_patch[i].keys():
             try:
                 for func_wpatch, result_wpatch in results_with_patch[i]['functions'].items():
                     if not result_wpatch == 'passed':
                         continue
+                    # now the function is passed with patch
                     if not func_wpatch in results_without_patch[i]['functions'].keys():
                         logger.info(f'Func {func_wpatch} does not appear in results without patch.')
                         FAIL_TO_PASS.append({"name": func_wpatch, "status": "not appear in results without patch"})
                     elif not results_without_patch[i]['functions'][func_wpatch] == 'passed':
                         FAIL_TO_PASS.append({"name": func_wpatch, "status": "normal"})
+                    elif results_without_patch[i]['functions'][func_wpatch] == 'passed':
+                        PASS_TO_PASS.append({"name": func_wpatch, "status": "normal"})
                 result["FAIL_TO_PASS"] = FAIL_TO_PASS
+                result["PASS_TO_PASS"] = PASS_TO_PASS
                 result["wpatch_funcs"] = results_with_patch[i]['functions']
                 result["wopatch_funcs"] = results_without_patch[i]['functions']
                 result['wpatch_log'] = results_with_patch[i]
