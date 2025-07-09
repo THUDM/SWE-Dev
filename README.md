@@ -2,7 +2,7 @@
 
 > Haoran Wang*, Zhenyu Hou*, Yao Wei, Jie Tang, Yuxiao Dong
 
-📝 [Paper](https://arxiv.org/abs/2506.07636) | 🤗 [Huggingface](https://huggingface.co/THUDM/SWE-Dev-32B) | 💻[Github](https://github.com/UbeCc/SWE-Dev)
+📝 [Paper](https://arxiv.org/abs/2506.07636) | 🤗 [HF(Model)](https://huggingface.co/THUDM/SWE-Dev-32B) | 🤗 [HF(Data)](https://huggingface.co/datasets/THUDM/SWE-Dev-train)
 
 This repository is a comprehensive pipeline for creating developer-oriented datasets from GitHub repositories, including issue tracking, test case generation, and evaluation.
 
