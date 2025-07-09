@@ -1,11 +1,36 @@
 # 🚀 SWE-Dev
 
-> SWE-Dev: Building Software Engineering Agents with Training and Inference Scaling
+> SWE-Dev: Building Software Engineering Agents with Training and Inference Scaling [ACL'25 Findings]
+> 
 > Haoran Wang*, Zhenyu Hou*, Yao Wei, Jie Tang, Yuxiao Dong
 
 📝 [Paper](https://arxiv.org/abs/2506.07636) | 🤗 [HF(Model)](https://huggingface.co/THUDM/SWE-Dev-32B) | 🤗 [HF(Data)](https://huggingface.co/datasets/THUDM/SWE-Dev-train)
 
+## 💡 Introduction
+
+LLMs have advanced from *conversational problem solving* to *real-world tasks* such as software engineering (SWE). However, building effective SWE agents remains challenging due to the lack of high-quality training data and reliable test-time evaluation. 
+
+To address this issue, we present **SWE-Dev**, an SWE agent built upon open-source LLMs, with a focus on training and inference scaling.
+
+- **For training scaling**, we develop a robust pipeline to synthesize test cases and scale up agent trajectories to construct the training data.
+- **For inference scaling**, we increase the interaction budget within a single run to enable further thinking within one independent attempt.
+
+Experiments on the SWE-bench-Verified benchmark show that the SWE-Dev models can achieve top performance among all open SWE agents. 
+Specifically, the resolve rate of our 7B and 32B models reach 23.4\% and 36.6\%, respectively, outperforming state-of-the-art open-source models.
+
+<div align="center"><img src="assets/performance.png" alt="Performance of SWE-Dev-7B and SWE-Dev-32B with Training and Inference Scaling." height=350px></div>
+
+<div align="left"><sup> <strong>Model performance with training and inference scaling.</strong> SWE-Dev demonstrated a 21.8% and 30% performance improvement on the 7B and 32B models, respectively, through scaling in both training and inference. Notably, SWE-Dev-32B achieved a performance of 34.0%, comparable to GPT-4o, even without the benefits of inference scaling. </sup><br><br></div>
+
+<div align="center"><img src="assets/table.png" alt="Performance of SWE-Dev-7B and SWE-Dev-32B with Training and Inference Scaling." height=450px></div>
+
+<div align="left"><sup> <strong>Comparison of resolve rates on the SWE-bench-Verified dataset.</strong> The table categorizes models into baselines and SWE agents, showcasing their performance. SWE-Dev models attain top-tier results within the realm of open-source models and concurrently exhibit robust performance among closed-source models. The relative improvement ($\uparrow$) for our models is calculated with respect to their respective base models. </sup><br><br></div>
+
 ## 🔄 Pipeline Overview
+
+<div align="center"><img src="assets/pipeline.png" alt="Performance of SWE-Dev-7B and SWE-Dev-32B with Training and Inference Scaling." height=350px></div>
+
+<div align="left"><sup> <strong>Pipeline for test case generation</strong>: The pipeline is divided into description generation and code generation phases. It begins with extracting repository information, followed by generating Gherkin scenarios and then detailed test cases. An optional revision step leverages traceback errors to refine the generated test cases. The final output includes fail-to-pass test cases. </sup></div>
 
 ### Step 0: 🛠️ Configuration Setup
 
