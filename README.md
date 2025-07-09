@@ -1,10 +1,9 @@
-# 🚀 SWE-Dev: Building Software Engineering Agents with Training and Inference Scaling
+# 🚀 SWE-Dev
 
+> SWE-Dev: Building Software Engineering Agents with Training and Inference Scaling
 > Haoran Wang*, Zhenyu Hou*, Yao Wei, Jie Tang, Yuxiao Dong
 
 📝 [Paper](https://arxiv.org/abs/2506.07636) | 🤗 [HF(Model)](https://huggingface.co/THUDM/SWE-Dev-32B) | 🤗 [HF(Data)](https://huggingface.co/datasets/THUDM/SWE-Dev-train)
-
-This repository is a comprehensive pipeline for creating developer-oriented datasets from GitHub repositories, including issue tracking, test case generation, and evaluation.
 
 ## 🔄 Pipeline Overview
 
