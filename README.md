@@ -10,7 +10,7 @@
 
 LLMs have advanced from *conversational problem solving* to *real-world tasks* such as software engineering (SWE). However, building effective SWE agents remains challenging due to the lack of high-quality training data and reliable test-time evaluation. 
 
-To address this issue, we present **SWE-Dev**, an SWE agent built upon open-source LLMs, with a focus on training and inference scaling.
+To address this issue, we present **SWE-Dev**, an SWE agent with a focus on training and inference scaling.
 
 - **For training scaling**, we develop a robust pipeline to synthesize test cases and scale up agent trajectories to construct the training data.
 - **For inference scaling**, we increase the interaction budget within a single run to enable further thinking within one independent attempt.
